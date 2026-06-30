@@ -2,6 +2,8 @@
 
 What it actually took to get LifeOS running on Windows 11 - Pulse daemon, voice, hooks, and all. This is a field report from a working install, not a plan. Every file cited here was verified on the live machine.
 
+> **Status (2026-06-30).** The repo-side changes described below are now committed on branch `docs/windows-install` of `atabisz/Personal_AI_Infrastructure`: the literal-`~` fallback fix as `2946389`, the cross-platform installer as `6519307`, and this field report as `f77f44c`. The "left uncommitted pending review" phrasing further down predates those commits — wherever it refers to repo-source files under `Releases/v5.0.0/.claude`, treat them as committed. Edits to the live `~/.claude` tree are a separate repo (`atabisz/claude-config`) and their commit status is not tracked here.
+
 ## The starting point: officially unsupported
 
 Upstream ships macOS/Linux only. Two facts set the baseline:
@@ -154,7 +156,7 @@ Two Windows-specific lessons from building these, worth recording because they b
 - **PowerShell 5.1 + UTF-8-without-BOM.** Login scripts must be 7-bit ASCII. PS 5.1 reads a no-BOM UTF-8 file as the ANSI codepage, so box-drawing characters and em-dashes mangle into bytes that derail the parser - a script that "looks fine" fails to parse at login. A tokenizer check passes where full `-File` parsing fails, so verify with `[Language.Parser]::ParseFile`, not `PSParser.Tokenize`.
 - **`Invoke-WebRequest` vs localhost health-checks.** On this Intune machine `Invoke-WebRequest http://localhost:31337` takes ~2.4s per call (WPAD proxy auto-discovery + progress rendering) even though curl returns in milliseconds - enough to blow a 2s timeout and falsely report Pulse down. The autostart installer uses a raw `HttpWebRequest` with `Proxy = $null` (~30ms), the curl-equivalent path.
 
-Scope: these are repo-source edits under `Releases/v5.0.0/.claude` (this repo, `atabisz/Personal_AI_Infrastructure`), left uncommitted pending review. The daemon installer was tested end-to-end on this machine through the exact `child_process.spawn` path the wizard uses - registers autostart, confirms `:31337`, returns success - with the live Startup entry backed up and restored unchanged around each run.
+Scope: these are repo-source edits under `Releases/v5.0.0/.claude` (this repo, `atabisz/Personal_AI_Infrastructure`), committed as `6519307` on branch `docs/windows-install`. The daemon installer was tested end-to-end on this machine through the exact `child_process.spawn` path the wizard uses - registers autostart, confirms `:31337`, returns success - with the live Startup entry backed up and restored unchanged around each run.
 
 ## The core insight
 
