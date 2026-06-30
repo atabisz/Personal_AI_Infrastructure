@@ -17,10 +17,11 @@
 import { join } from "path"
 import { readFileSync, existsSync } from "fs"
 import { parse } from "smol-toml"
+import { homedir } from "os"
 
 // ── Load .env before anything else ──
 
-const HOME = process.env.HOME ?? "~"
+const HOME = process.env.HOME ?? process.env.USERPROFILE ?? homedir()
 const PAI_DIR = join(HOME, ".claude", "PAI")
 const PULSE_DIR = join(PAI_DIR, "PULSE")
 

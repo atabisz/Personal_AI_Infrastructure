@@ -8,6 +8,13 @@
 import { parse } from "smol-toml"
 import { join } from "path"
 import { rename } from "fs/promises"
+import { homedir } from "os"
+
+// Resolve the user home dir portably: HOME (Git Bash) → USERPROFILE (native
+// Windows login/autostart, where HOME is unset) → os.homedir(). Falling back to
+// a literal "~" produces a relative path that mkdir/Bun.write materialize as a
+// stray "~" directory under the cwd. Mirrors pulse.ts.
+const HOME = process.env.HOME ?? process.env.USERPROFILE ?? homedir()
 
 // ── Types ──
 
@@ -246,7 +253,7 @@ export async function spawnScript(command: string, timeoutMs = 60_000): Promise<
   const proc = Bun.spawn(["bash", "-c", command], {
     stdout: "pipe",
     stderr: "pipe",
-    cwd: join(process.env.HOME ?? "~", ".claude", "PAI", "PULSE"),
+    cwd: join(HOME, ".claude", "PAI", "PULSE"),
     env: { ...process.env },
   })
 
@@ -283,9 +290,9 @@ export async function spawnClaude(prompt: string, opts: { model: string; timeout
     "--setting-sources", "",
     "--system-prompt", "",
   ]
-  const claudePath = Bun.which("claude") ?? join(process.env.HOME ?? "~", ".local", "bin", "claude")
+  const claudePath = Bun.which("claude") ?? join(HOME, ".local", "bin", "claude")
 
-  const env: Record<string, string> = { ...process.env, HOME: process.env.HOME ?? "" } as Record<string, string>
+  const env: Record<string, string> = { ...process.env, HOME } as Record<string, string>
   delete env.ANTHROPIC_API_KEY
 
   const proc = Bun.spawn([claudePath, ...args], {

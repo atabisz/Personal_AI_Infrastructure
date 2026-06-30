@@ -16,7 +16,13 @@
 import { spawn } from "child_process"
 import { join } from "path"
 import { existsSync, readFileSync } from "fs"
+import { homedir } from "os"
 import { log } from "../lib"
+
+// HOME (Git Bash) → USERPROFILE (native Windows login/autostart) → os.homedir().
+// A literal "~" fallback builds a relative path that materializes a stray "~"
+// directory under the cwd when HOME is unset. Mirrors pulse.ts.
+const HOME = process.env.HOME ?? process.env.USERPROFILE ?? homedir()
 
 // ── Public Config Interface ──
 
@@ -162,7 +168,7 @@ function escapeRegex(str: string): string {
 }
 
 function loadPronunciations(customPath?: string): void {
-  const paiDir = join(process.env.HOME ?? "~", ".claude", "PAI")
+  const paiDir = join(HOME, ".claude", "PAI")
   const userPronPath = customPath ?? join(paiDir, "USER", "pronunciations.json")
 
   try {
@@ -195,7 +201,7 @@ function applyPronunciations(text: string): string {
 // ── Voice Config from settings.json ──
 
 function loadVoiceConfigFromSettings(): LoadedVoiceConfig {
-  const settingsPath = join(process.env.HOME ?? "~", ".claude", "settings.json")
+  const settingsPath = join(HOME, ".claude", "settings.json")
 
   try {
     if (!existsSync(settingsPath)) {
@@ -652,7 +658,7 @@ export async function handleVoiceRequest(req: Request): Promise<Response | null>
       // /notify/personality honest with whatever the user last selected.
       let voiceId: string | null = null
       try {
-        const settingsFile = join(process.env.HOME ?? "~", ".claude", "settings.json")
+        const settingsFile = join(HOME, ".claude", "settings.json")
         const settings = JSON.parse(readFileSync(settingsFile, "utf-8"))
         const main = settings?.daidentity?.voices?.main
         const vid = (main?.voiceId || main?.VOICE_ID || main?.voice_id) as string | undefined

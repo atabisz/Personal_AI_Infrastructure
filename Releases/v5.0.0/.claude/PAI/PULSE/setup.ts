@@ -12,8 +12,9 @@
 
 import { join, resolve } from "path"
 import { existsSync, mkdirSync } from "fs"
+import { homedir } from "os"
 
-const HOME = process.env.HOME ?? "~"
+const HOME = process.env.HOME ?? process.env.USERPROFILE ?? homedir()
 const PAI_DIR = join(HOME, ".claude", "PAI")
 const PULSE_DIR = join(PAI_DIR, "PULSE")
 
