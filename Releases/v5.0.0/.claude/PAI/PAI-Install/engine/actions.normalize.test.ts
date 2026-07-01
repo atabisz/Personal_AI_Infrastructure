@@ -16,7 +16,7 @@ describe("normalizeHookCommand", () => {
       input: "$HOME/.claude/hooks/X.hook.ts",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: tsAllowlist,
       },
@@ -27,7 +27,7 @@ describe("normalizeHookCommand", () => {
       input: "$HOME/.claude/hooks/X.hook.ts",
       opts: {
         platform: "darwin",
-        bunPath: "/Users/alex/.bun/bin/bun",
+        bunPath: "/Users/example/.bun/bin/bun",
         bashPath: "/bin/bash",
         allowlist: tsAllowlist,
       },
@@ -38,7 +38,7 @@ describe("normalizeHookCommand", () => {
       input: "\"$HOME/.bun/bin/bun.exe\" $HOME/.claude/hooks/X.hook.ts",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: tsAllowlist,
       },
@@ -49,7 +49,7 @@ describe("normalizeHookCommand", () => {
       input: "\"$HOME/.bun/bin/bun.exe\" $HOME/.claude/hooks/X.hook.ts",
       opts: {
         platform: "darwin",
-        bunPath: "/Users/alex/.bun/bin/bun",
+        bunPath: "/Users/example/.bun/bin/bun",
         bashPath: "/bin/bash",
         allowlist: tsAllowlist,
       },
@@ -104,7 +104,7 @@ describe("normalizeHookCommand", () => {
       input: "bash $HOME/.claude/hooks/X.hook.ts",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: tsAllowlist,
       },
@@ -115,7 +115,7 @@ describe("normalizeHookCommand", () => {
       input: "bash $HOME/.claude/hooks/X.hook.ts",
       opts: {
         platform: "darwin",
-        bunPath: "/Users/alex/.bun/bin/bun",
+        bunPath: "/Users/example/.bun/bin/bun",
         bashPath: "/bin/bash",
         allowlist: tsAllowlist,
       },
@@ -126,7 +126,7 @@ describe("normalizeHookCommand", () => {
       input: "\"$HOME/My Hooks/X.hook.ts\"",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: tsAllowlist,
       },
@@ -137,7 +137,7 @@ describe("normalizeHookCommand", () => {
       input: "$HOME/.claude/hooks/X.hook.ts --flag \"two words\"",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: tsAllowlist,
       },
@@ -148,7 +148,7 @@ describe("normalizeHookCommand", () => {
       input: "$HOME/.claude/hooks/ContextReduction.hook.sh",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: tsAllowlist,
       },
@@ -159,7 +159,7 @@ describe("normalizeHookCommand", () => {
       input: "$HOME/.claude/hooks/ContextReduction.hook.sh",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: null,
         allowlist: tsAllowlist,
       },
@@ -170,7 +170,7 @@ describe("normalizeHookCommand", () => {
       input: "$HOME/.claude/hooks/ContextReduction.hook.sh",
       opts: {
         platform: "darwin",
-        bunPath: "/Users/alex/.bun/bin/bun",
+        bunPath: "/Users/example/.bun/bin/bun",
         bashPath: "/bin/bash",
         allowlist: tsAllowlist,
       },
@@ -181,7 +181,7 @@ describe("normalizeHookCommand", () => {
       input: "$HOME/.claude/hooks/Weird.hook.zzz",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: new Set(["Weird.hook.zzz"]),
       },
@@ -192,7 +192,7 @@ describe("normalizeHookCommand", () => {
       input: "bun $HOME/.claude/hooks/UserOwned.hook.ts",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: new Set(["X.hook.ts"]),
       },
@@ -203,7 +203,7 @@ describe("normalizeHookCommand", () => {
       input: "bun $HOME/.claude/hooks/UserOwned.hook.ts",
       opts: {
         platform: "darwin",
-        bunPath: "/Users/alex/.bun/bin/bun",
+        bunPath: "/Users/example/.bun/bin/bun",
         bashPath: "/bin/bash",
         allowlist: new Set(["X.hook.ts"]),
       },
@@ -214,7 +214,7 @@ describe("normalizeHookCommand", () => {
       input: "$HOME/.claude/PAI/statusline-command.sh",
       opts: {
         platform: "win32",
-        bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+        bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
         bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
         allowlist: tsAllowlist,
       },
@@ -231,7 +231,7 @@ describe("normalizeHookCommand", () => {
   it("is idempotent on win32", () => {
     const opts: Parameters<typeof normalizeHookCommand>[1] = {
       platform: "win32",
-      bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+      bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
       bashPath: "C:\\Program Files\\Git\\bin\\bash.exe",
       allowlist: tsAllowlist,
     };
@@ -307,7 +307,7 @@ describe("collectHookAllowlist", () => {
     const cmd = settings.hooks.PreToolUse[0].hooks[0].command;
     const out = normalizeHookCommand(cmd, {
       platform: "win32",
-      bunPath: "C:\\Users\\Alex\\.bun\\bin\\bun.exe",
+      bunPath: "C:\\Users\\example\\.bun\\bin\\bun.exe",
       bashPath: null,
       allowlist,
     });
