@@ -53,7 +53,7 @@ function resolveWindowsTool(name: string): string | null {
  * Resolve a tool's absolute path. On non-Windows uses `which` (unchanged
  * behaviour). On Windows scans PATH + PATHEXT since `which` is not guaranteed.
  */
-function resolveToolPath(name: string): string | null {
+export function resolveToolPath(name: string): string | null {
   return IS_WINDOWS ? resolveWindowsTool(name) : tryExec(`which ${name}`);
 }
 

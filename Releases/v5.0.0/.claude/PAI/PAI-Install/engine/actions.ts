@@ -10,8 +10,330 @@ import { homedir } from "os";
 import { join, basename, dirname } from "path";
 import type { InstallState, EngineEventHandler, DetectionResult, ExistingUserContentDetection, StepId } from "./types";
 import { PAI_VERSION, ALGORITHM_VERSION, DEFAULT_VOICES } from "./types";
-import { detectSystem, detectExistingUserContent, scanApiKeys, validateElevenLabsKey } from "./detect";
+import { detectSystem, detectExistingUserContent, scanApiKeys, validateElevenLabsKey, resolveToolPath } from "./detect";
 import { generateSettingsJson } from "./config-gen";
+
+type HookCommandToken = {
+  value: string;
+  start: number;
+};
+
+function tokenizeCommand(command: string): HookCommandToken[] {
+  const tokens: HookCommandToken[] = [];
+  let index = 0;
+
+  while (index < command.length) {
+    while (index < command.length && /\s/.test(command[index])) {
+      index += 1;
+    }
+
+    if (index >= command.length) {
+      break;
+    }
+
+    const start = index;
+    let inQuotes = false;
+
+    while (index < command.length) {
+      const char = command[index];
+      if (char === "\"") {
+        inQuotes = !inQuotes;
+        index += 1;
+        continue;
+      }
+
+      if (!inQuotes && /\s/.test(char)) {
+        break;
+      }
+
+      index += 1;
+    }
+
+    const raw = command.slice(start, index);
+    const quoted = raw.length >= 2 && raw.startsWith("\"") && raw.endsWith("\"");
+    tokens.push({
+      value: quoted ? raw.slice(1, -1) : raw,
+      start,
+    });
+  }
+
+  return tokens;
+}
+
+function getCommandTokenBasename(tokenValue: string): string {
+  return basename(tokenValue.replace(/\\/g, "/"));
+}
+
+// Known hook-script extensions. The allowlist and the normalizer both key on
+// the SCRIPT token (the token ending in one of these), never the first token —
+// otherwise a re-install reading an already-prefixed command would derive the
+// interpreter basename (e.g. `bun.exe`) as the "hook" and double-prefix it.
+const SCRIPT_EXTENSIONS = [".hook.ts", ".ts", ".mts", ".cts", ".js", ".sh"];
+
+function isScriptTokenValue(tokenValue: string): boolean {
+  const lower = tokenValue.toLowerCase();
+  return SCRIPT_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+// The hook script basename for a command: the LAST token that ends in a script
+// extension. Handles bare (`X.hook.ts`), prefixed (`bun X.hook.ts`), and
+// already-win32-normalized (`"$HOME/.bun/bin/bun.exe" X.hook.ts`) forms alike,
+// so the allowlist is stable across fresh-install and re-install.
+function getCommandBasename(command: string): string | null {
+  const tokens = tokenizeCommand(command);
+  for (let i = tokens.length - 1; i >= 0; i -= 1) {
+    if (isScriptTokenValue(tokens[i].value)) {
+      return getCommandTokenBasename(tokens[i].value);
+    }
+  }
+  return null;
+}
+
+function getWindowsBunInterpreter(bunPath?: string): string {
+  if (!bunPath) {
+    return "\"$HOME/.bun/bin/bun.exe\"";
+  }
+
+  const normalizedDirectory = dirname(bunPath).replace(/\\/g, "/").toLowerCase();
+  if (normalizedDirectory.endsWith("/.bun/bin")) {
+    return "\"$HOME/.bun/bin/bun.exe\"";
+  }
+
+  return `"${bunPath}"`;
+}
+
+function getCommandInterpreter(scriptTokenValue: string): "bash" | "bun" {
+  const normalizedScript = scriptTokenValue.toLowerCase();
+  if (normalizedScript.endsWith(".sh")) {
+    return "bash";
+  }
+
+  if (
+    normalizedScript.endsWith(".ts") ||
+    normalizedScript.endsWith(".mts") ||
+    normalizedScript.endsWith(".cts") ||
+    normalizedScript.endsWith(".js")
+  ) {
+    return "bun";
+  }
+
+  // Bundled PAI hooks are .ts/.sh; unexpected allowlisted extensions still execute via bun.
+  return "bun";
+}
+
+/**
+ * Normalizes PAI-owned hook and status-line commands by allowlisted script basename.
+ * Allowlisted .ts/.mts/.cts/.js commands use bun, .sh commands use bash, and unexpected
+ * allowlisted extensions fall back to bun because the bundled PAI templates only ship .ts/.sh.
+ * On win32 the interpreter is prepended, on darwin/linux any stray interpreter prefix is stripped
+ * back to the bare script token plus trailing args, and rerunning on the same OS is idempotent
+ * because the rewrite structurally replaces everything before the allowlisted script token.
+ * Non-allowlisted commands are returned unchanged. Returning null means to drop the hook entry,
+ * which is only used for allowlisted .sh hooks on win32 when bash is unavailable.
+ */
+export function normalizeHookCommand(
+  command: string,
+  opts: {
+    platform: "darwin" | "linux" | "win32";
+    bunPath?: string;
+    bashPath?: string | null;
+    allowlist: Set<string>;
+  }
+): string | null {
+  const tokens = tokenizeCommand(command);
+  const scriptToken = tokens.find((token) => opts.allowlist.has(getCommandTokenBasename(token.value)));
+
+  if (!scriptToken) {
+    return command;
+  }
+
+  const suffix = command.slice(scriptToken.start);
+  const interpreter = getCommandInterpreter(scriptToken.value);
+
+  if (opts.platform === "win32") {
+    if (interpreter === "bash") {
+      if (!opts.bashPath) {
+        return null;
+      }
+
+      return `bash ${suffix}`;
+    }
+
+    return `${getWindowsBunInterpreter(opts.bunPath)} ${suffix}`;
+  }
+
+  if (scriptToken.start === 0) {
+    return command;
+  }
+
+  return suffix;
+}
+
+/**
+ * Collect the PAI-owned hook allowlist from the PRISTINE bundled template, not
+ * the on-disk (possibly user-modified) settings. On a re-install the on-disk
+ * file is template ⊕ the user's own custom hooks; sourcing the allowlist from
+ * it would let normalization rewrite a user's hook interpreter. The bundle's
+ * settings.json only ever contains PAI-shipped hooks, so it is the correct,
+ * user-hook-safe source. Falls back to the passed on-disk settings only when no
+ * bundle is available (e.g. git-clone install with no PAI_BUNDLE_DIR) — on a
+ * fresh install on-disk == template, so the fallback is still correct there.
+ */
+export function collectTemplateHookAllowlist(onDiskSettings: unknown): Set<string> {
+  const bundleRoot = process.env.PAI_BUNDLE_DIR;
+  if (bundleRoot) {
+    const bundleSettingsPath = join(bundleRoot, "settings.json");
+    if (existsSync(bundleSettingsPath)) {
+      try {
+        const template = JSON.parse(readFileSync(bundleSettingsPath, "utf-8"));
+        return collectHookAllowlist(template);
+      } catch {
+        // Corrupt bundle settings — fall through to on-disk.
+      }
+    }
+  }
+  return collectHookAllowlist(onDiskSettings);
+}
+
+export function collectHookAllowlist(settings: unknown): Set<string> {
+  const allowlist = new Set<string>();
+  if (!settings || typeof settings !== "object") {
+    return allowlist;
+  }
+
+  const settingsRecord = settings as Record<string, unknown>;
+  const hooks = settingsRecord.hooks;
+  if (hooks && typeof hooks === "object") {
+    for (const eventGroups of Object.values(hooks as Record<string, unknown>)) {
+      if (!Array.isArray(eventGroups)) {
+        continue;
+      }
+
+      for (const group of eventGroups) {
+        if (!group || typeof group !== "object") {
+          continue;
+        }
+
+        const hookEntries = (group as Record<string, unknown>).hooks;
+        if (!Array.isArray(hookEntries)) {
+          continue;
+        }
+
+        for (const hookEntry of hookEntries) {
+          if (!hookEntry || typeof hookEntry !== "object") {
+            continue;
+          }
+
+          const command = (hookEntry as Record<string, unknown>).command;
+          if (typeof command !== "string") {
+            continue;
+          }
+
+          const commandBasename = getCommandBasename(command);
+          if (commandBasename) {
+            allowlist.add(commandBasename);
+          }
+        }
+      }
+    }
+  }
+
+  const statusLine = settingsRecord.statusLine;
+  if (statusLine && typeof statusLine === "object") {
+    const command = (statusLine as Record<string, unknown>).command;
+    if (typeof command === "string") {
+      const commandBasename = getCommandBasename(command);
+      if (commandBasename) {
+        allowlist.add(commandBasename);
+      }
+    }
+  }
+
+  return allowlist;
+}
+
+function normalizePaiHookCommands(
+  settings: Record<string, unknown>,
+  opts: {
+    platform: "darwin" | "linux" | "win32";
+    bunPath?: string;
+    bashPath?: string | null;
+    allowlist: Set<string>;
+  }
+): Record<string, unknown> {
+  const normalizedSettings = JSON.parse(JSON.stringify(settings)) as Record<string, unknown>;
+  const hooks = normalizedSettings.hooks;
+
+  if (hooks && typeof hooks === "object") {
+    const hookEvents = hooks as Record<string, unknown>;
+    for (const [eventName, eventGroups] of Object.entries(hookEvents)) {
+      if (!Array.isArray(eventGroups)) {
+        continue;
+      }
+
+      const normalizedGroups: unknown[] = [];
+      for (const group of eventGroups) {
+        if (!group || typeof group !== "object") {
+          normalizedGroups.push(group);
+          continue;
+        }
+
+        const groupRecord = { ...(group as Record<string, unknown>) };
+        const hookEntries = groupRecord.hooks;
+        if (!Array.isArray(hookEntries)) {
+          normalizedGroups.push(groupRecord);
+          continue;
+        }
+
+        const normalizedHooks: unknown[] = [];
+        for (const hookEntry of hookEntries) {
+          if (!hookEntry || typeof hookEntry !== "object") {
+            normalizedHooks.push(hookEntry);
+            continue;
+          }
+
+          const hookRecord = { ...(hookEntry as Record<string, unknown>) };
+          if (hookRecord.type === "command" && typeof hookRecord.command === "string") {
+            const normalizedCommand = normalizeHookCommand(hookRecord.command, opts);
+            if (normalizedCommand === null) {
+              // ContextReduction.hook.sh is an optional optimization; without bash on Windows it would be a dead failing exec.
+              continue;
+            }
+
+            hookRecord.command = normalizedCommand;
+          }
+
+          normalizedHooks.push(hookRecord);
+        }
+
+        if (normalizedHooks.length === 0) {
+          continue;
+        }
+
+        groupRecord.hooks = normalizedHooks;
+        normalizedGroups.push(groupRecord);
+      }
+
+      hookEvents[eventName] = normalizedGroups;
+    }
+  }
+
+  const statusLine = normalizedSettings.statusLine;
+  if (statusLine && typeof statusLine === "object") {
+    const statusLineRecord = { ...(statusLine as Record<string, unknown>) };
+    if (typeof statusLineRecord.command === "string") {
+      const normalizedCommand = normalizeHookCommand(statusLineRecord.command, opts);
+      if (normalizedCommand !== null) {
+        statusLineRecord.command = normalizedCommand;
+      }
+      // Keep the cosmetic status line command shape intact when bash is absent on Windows.
+    }
+
+    normalizedSettings.statusLine = statusLineRecord;
+  }
+
+  return normalizedSettings;
+}
 
 type ChoiceOption = {
   label: string;
@@ -1328,6 +1650,10 @@ export async function runConfiguration(
   if (existsSync(settingsPath)) {
     try {
       const existing = JSON.parse(readFileSync(settingsPath, "utf-8"));
+      // Source the allowlist from the pristine bundle template, NOT `existing` —
+      // on re-install `existing` carries the user's own custom hooks, which must
+      // not be normalized. See collectTemplateHookAllowlist.
+      const hookAllowlist = collectTemplateHookAllowlist(existing);
       // Merge only installer-managed fields; preserve everything else
       existing.env = { ...existing.env, ...config.env };
       existing.principal = { ...existing.principal, ...config.principal };
@@ -1342,14 +1668,60 @@ export async function runConfiguration(
       if (!existing.permissions) existing.permissions = config.permissions;
       if (!existing.contextFiles) existing.contextFiles = config.contextFiles;
       if (!existing.plansDirectory) existing.plansDirectory = config.plansDirectory;
-      // Never touch: hooks, statusLine, spinnerVerbs, contextFiles (if present)
-      writeFileSync(settingsPath, JSON.stringify(existing, null, 2));
+      // Only normalize hooks/statusLine interpreter prefixes because Windows lacks the unix shebang + exec-bit path for bare scripts; unix remains a bare-path no-op. Never touch spinnerVerbs or any other user fields here.
+      let settingsToWrite = existing;
+      if (state.detection) {
+        try {
+          settingsToWrite = normalizePaiHookCommands(existing, {
+            platform: state.detection.os.platform,
+            bunPath: state.detection.tools.bun.path,
+            bashPath: resolveToolPath("bash"),
+            allowlist: hookAllowlist,
+          });
+        } catch (error) {
+          console.warn("Hook interpreter normalization failed; writing merged settings without normalization.", error);
+        }
+      }
+
+      writeFileSync(settingsPath, JSON.stringify(settingsToWrite, null, 2));
     } catch {
       // Existing file is corrupt — write fresh as fallback
-      writeFileSync(settingsPath, JSON.stringify(config, null, 2));
+      writeFileSync(settingsPath, JSON.stringify((() => {
+        if (!state.detection) {
+          return config as Record<string, unknown>;
+        }
+
+        try {
+          return normalizePaiHookCommands(config as Record<string, unknown>, {
+            platform: state.detection.os.platform,
+            bunPath: state.detection.tools.bun.path,
+            bashPath: resolveToolPath("bash"),
+            allowlist: new Set<string>(),
+          });
+        } catch (error) {
+          console.warn("Hook interpreter normalization failed; writing generated settings without normalization.", error);
+          return config as Record<string, unknown>;
+        }
+      })(), null, 2));
     }
   } else {
-    writeFileSync(settingsPath, JSON.stringify(config, null, 2));
+    writeFileSync(settingsPath, JSON.stringify((() => {
+      if (!state.detection) {
+        return config as Record<string, unknown>;
+      }
+
+      try {
+        return normalizePaiHookCommands(config as Record<string, unknown>, {
+          platform: state.detection.os.platform,
+          bunPath: state.detection.tools.bun.path,
+          bashPath: resolveToolPath("bash"),
+          allowlist: new Set<string>(),
+        });
+      } catch (error) {
+        console.warn("Hook interpreter normalization failed; writing generated settings without normalization.", error);
+        return config as Record<string, unknown>;
+      }
+    })(), null, 2));
   }
   await emit({ event: "message", content: "settings.json generated." });
 
