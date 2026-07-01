@@ -1,9 +1,9 @@
 # Windows support — recommended implementation plan
 
-This is the plan for making LifeOS (PAI) work on a fresh native Windows install. It builds on the triage in [windows-support-audit.md](windows-support-audit.md) and the conclusions of a four-member council debate (Hale, Vance, Reese, Quill). The audit is the map; this is the route.
+This is the plan for making LifeOS (PAI) work on a fresh native Windows install. It builds on the triage in [WINDOWS-SUPPORT-AUDIT.md](WINDOWS-SUPPORT-AUDIT.md) and the conclusions of a four-member council debate (Hale, Vance, Reese, Quill). The audit is the map; this is the route.
 
 **Date:** 2026-06-30
-**Source audit:** [windows-support-audit.md](windows-support-audit.md)
+**Source audit:** [WINDOWS-SUPPORT-AUDIT.md](WINDOWS-SUPPORT-AUDIT.md)
 **Decision basis:** Council debate, 3 rounds. Strong convergence on sequencing; one honest tension on scope (recorded below).
 
 > **Live-install verification — 2026-06-30.** The plan's "the live tree already carries this fix" assumptions were checked against the live install at `C:\Users\AlexTabisz\.claude`. Result: **two of three hold, one does not.** Hook interpreter prefixes (✅) and `voice.ts` (✅) are fixed and suitable in the live tree — those steps really are back-ports. But the **HOME-resolution sweep is barely started even in the live tree** (33 files still throwing `process.env.HOME!`, 26 on `\|\| ""`/`?? ""`, only 18 on the correct chain), there is **no shared helper module to promote**, and **no lint rule exists**. Also: the two `.sh` blockers (`ContextReduction.hook.sh`, statusline) are **release-snapshot artifacts** — the live `settings.json` registers no `.sh` hook and uses an inline bash statusline. Inline corrections below are dated. Full evidence: the "Live-install verification" table in the audit.
