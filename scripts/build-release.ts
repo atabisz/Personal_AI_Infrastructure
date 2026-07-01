@@ -330,9 +330,16 @@ const PLACEHOLDER_VALUE = /^(your|my|the|example|test|dummy|fake|placeholder|xxx
 function looksLikeRealSecret(value: string): boolean {
   const v = value.trim();
   if (v.length < 8) return false;                   // too short to be a credential of concern
-  if (PLACEHOLDER_VALUE.test(v)) return false;      // your_key, <key>, ${X}, %X%, sk-ant-..., env.X
-  // A known key prefix with a real body is unambiguously a secret.
+  if (PLACEHOLDER_VALUE.test(v)) return false;      // your_key, <key>, ${X}, %X%, env.X (prefix-anchored)
+  // A known key prefix with a real body is unambiguously a secret — tested FIRST so a real
+  // prefixed key is never cleared by a later placeholder heuristic (Forge audit 2026-07-02).
   if (/^(sk|pk|xoxb|xoxp|ghp|gho|AKIA|AIza)[-_]?[A-Za-z0-9]{16,}/.test(v)) return true;
+  // A value ENDING in `...` is a redacted doc placeholder (`sk-ant-...`, `sk-...`), never a real
+  // contiguous secret: PLACEHOLDER_VALUE only anchors `^\.\.\.`, so an ellipsis-SUFFIXED form
+  // fell through and fail-closed to "secret". Anchored to endsWith (not includes) so a diceware
+  // passphrase with a mid-value ellipsis is NOT cleared; and placed AFTER the positive prefix
+  // test above so a real prefixed key carrying a trailing `...` is still caught first.
+  if (v.endsWith("...")) return false;
   // Code fragment, not a literal value: real secret values never contain code punctuation or
   // newlines. Rejects captures like `")) {\n envContent = ...` WITHOUT rejecting space-
   // separated passphrases (a diceware value has spaces but no code punctuation).
@@ -361,26 +368,46 @@ const PLACEHOLDER_SEGMENTS = new Set([
 // Returns a pattern label if the text contains a user-home path whose first segment
 // looks like a real account name (not a template placeholder or generic example).
 function findRealUserPath(text: string): string | null {
+  // Distinguishing a real home-dir root from the REST-API `/users/` convention turns on TWO
+  // signals — casing AND drive-anchoring (Forge cross-family audit 2026-07-02):
+  //   • A *drive/UNC/mount-anchored* `users` is a real home root at ANY casing — Windows NTFS is
+  //     case-insensitive (`c:\users\carol` ≡ `C:\Users\carol`), and Git-Bash/Cygwin (`/c/users/…`)
+  //     and WSL (`/mnt/c/users/…`) serialize the root lowercase. These matchers are case-INSENSITIVE
+  //     on `users`, but the drive/server/mount prefix anchors them so no REST path can match (a
+  //     REST `/api/users/…` has a multi-char segment, never a bare drive letter, before `users`).
+  //   • A *bare* POSIX `/Users/` (macOS, capital) or `/home/` (Linux, lowercase) is a real root; a
+  //     bare lowercase `/users/…` is the REST convention (`GET /users/:id`, ffuf `/users/FUZZ`,
+  //     `/oauth/users/icon-uri`) — so the bare-POSIX matcher stays case-SENSITIVE to drop those.
+  // Net: every real third-party home path (incl. lowercased Windows/WSL/Git-Bash) is still caught;
+  // only the bare-lowercase-`/users/` REST false-positive class is dropped.
   const matchers: Array<[string, RegExp]> = [
-    ["windows-user-path", /[A-Za-z]:[\\/]Users[\\/]([^\\/\r\n\t ]+)/gi],
-    ["unc-user-path", /\\\\[^\\/\r\n\t ]+\\Users\\([^\\/\r\n\t ]+)/gi], // \\server\Users\alice
-    ["unix-user-path", /\/(?:Users|home)\/([^\/\r\n\t ]+)/gi],
+    ["windows-user-path", /[A-Za-z]:[\\/][Uu]sers[\\/]([^\\/\r\n\t ]+)/g], // c:\users\ ≡ C:\Users\
+    ["unc-user-path", /\\\\[^\\/\r\n\t ]+\\[Uu]sers\\([^\\/\r\n\t ]+)/g], // \\server\users\alice
+    ["wsl-user-path", /\/(?:mnt\/)?[a-z]\/[Uu]sers\/([^/\r\n\t ]+)/g], // /c/users/ , /mnt/c/users/
+    ["unix-user-path", /\/(?:Users|home)\/([^\/\r\n\t ]+)/g], // macOS /Users/ , Linux /home/ (exact case)
   ];
   for (const [label, re] of matchers) {
     for (const m of text.matchAll(re)) {
-      const seg = m[1];
-      // A real home-dir username segment begins with a filesystem-legal name char: a letter
-      // or digit of ANY script (Unicode `\p{L}`/`\p{N}` — so `/home/Иван`, `C:\Users\Ómar`,
-      // `/Users/张伟` for real non-Latin-named people are still caught), or `.`/`_`/`-`.
-      // Anything starting with other punctuation is a template (<name>, ${USER}, %USERNAME%),
-      // a REST route param (:id, *slug — e.g. a Bun `/api/users/:id` example), or JSON/code
-      // punctuation — never a valid leaking home path. This first-char allowlist kills the
-      // `/api/users/:id` false-positive class without narrowing detection of any real user path.
+      // The matcher captures the run up to the next slash/space, but in SOURCE text that run
+      // carries surrounding code/prose: a template interpolation (`…/users/me${path}` → `me${path}`),
+      // a string delimiter (`/Users/daniel\";` → `daniel\"`), or trailing punctuation from prose
+      // (`/Users/daniel,` → `daniel,`). Extract the LEADING path-legal prefix — the longest run of
+      // characters a real home-dir username can actually contain: a letter or digit of ANY script
+      // (Unicode `\p{L}`/`\p{N}`, so `/home/Иван`, `C:\Users\Ómar`, `/Users/张伟` for real
+      // non-Latin-named people are still caught) plus `.`/`_`/`-`. Everything else (`:` `*` `<`
+      // `$` `{` `,` `"` …) terminates the name, so a REST route param (`/api/users/:id`), a
+      // template (`${USER}`), and trailing prose/code punctuation all collapse to their real
+      // prefix — which is empty for a pure-metachar capture (dropped) and the true name otherwise.
+      //
+      // This is NOT a narrowing: a real name glued to interpolation still flags — `/Users/bob${x}`
+      // → prefix `bob` → caught. Only a non-name prefix (`me` endpoint, `${USER}` template) drops.
       // (Forge cross-family audit 2026-07-01: a `/^[<${%:*]/` blocklist checked only seg[0] so a
       // punctuation-cloaked name could slip; an ASCII-only `[A-Za-z0-9._-]` allowlist then dropped
-      // non-ASCII usernames — a false-negative for the third-party names this gate protects. The
-      // Unicode-property allowlist is the form that is neither too loose nor too tight.)
-      if (!/^[\p{L}\p{N}._-]/u.test(seg)) continue;
+      // non-ASCII usernames. This leading-Unicode-prefix extraction is neither too loose nor too
+      // tight, and subsumes both the first-char allowlist and the trailing-punctuation strip.)
+      const prefix = m[1].match(/^[\p{L}\p{N}._-]+/u);
+      if (!prefix) continue; // capture had no real-name prefix (`:id`, `${USER}`) — not a leak
+      const seg = prefix[0];
       const lower = seg.toLowerCase();
       if (PLACEHOLDER_SEGMENTS.has(lower)) continue;
       if (REVIEWED_EXAMPLE_NAMES.has(lower)) continue; // vetted public teaching examples
