@@ -300,6 +300,17 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "AskUserQuestion|ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.bun/bin/bun.exe\" \"$HOME/.claude/hooks/VoiceQuestion.hook.ts\"",
+            "timeout": 12,
+            "async": true
+          }
+        ]
+      },
+      {
         "matcher": "Agent",
         "hooks": [
           {

@@ -165,6 +165,44 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
+// ── Playback Serialization ──
+//
+// Concurrency model: Bun.serve runs concurrent /notify handlers in parallel, so
+// two agents voicing actions at once would each spawn a player process and the
+// clips would overlap. We serialize ONLY the playback stage: TTS generation
+// (the ElevenLabs network round-trip) still runs concurrently, but audio plays
+// through a single FIFO queue — one clip at a time, in request-arrival order.
+// Generating message N+1 while message N is still playing minimizes dead air.
+//
+// The queue is an in-memory promise-chain tail. JS is single-threaded, so
+// "read tail → advance tail" within enqueuePlayback() is atomic, and chaining
+// synchronously (before awaiting the audio buffer) is what pins arrival order —
+// otherwise a fast-generating later message could jump ahead of a slow earlier
+// one. The tail advances through an error-swallowing link so a rejected task
+// (failed synth, crashed player) can never wedge the queue; the caller still
+// sees the real outcome via the returned promise.
+//
+// Deferred upgrade path: this is single-process only. Coordinating playback
+// across multiple Pulse instances would need a shared lock (file/socket/Redis);
+// out of scope here — in-memory, best-effort, resets on restart.
+
+let playbackTail: Promise<void> = Promise.resolve()
+
+function enqueuePlayback<T>(task: () => Promise<T>): Promise<T> {
+  // Claim the FIFO slot synchronously: this task runs only after the current
+  // tail settles. Capture the caller-facing result before swallowing errors on
+  // the tail so one failure doesn't block the next message. Ordering is by
+  // slot-claim time (when a caller reaches this line), not HTTP wire-arrival —
+  // in practice identical since nothing slow awaits between request entry and
+  // the enqueue call.
+  const result = playbackTail.then(task)
+  playbackTail = result.then(
+    () => undefined,
+    () => undefined,
+  )
+  return result
+}
+
 // ── Pronunciation System ──
 
 function escapeRegex(str: string): string {
@@ -523,7 +561,10 @@ async function sendNotification(
   if (voiceEnabled && provider === "piper") {
     try {
       log("info", "Voice: generating speech via Piper", { model: moduleConfig.piper_voice_model })
-      await generateAndPlayPiper(safeMessage)
+      // Piper couples synth+play in one call, so the whole thing runs inside the
+      // FIFO playback slot (Piper synth is local/fast — losing concurrent-gen is
+      // marginal). Serializing here still guarantees clips never overlap.
+      await enqueuePlayback(() => generateAndPlayPiper(safeMessage))
       voicePlayed = true
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error)
@@ -588,8 +629,19 @@ async function sendNotification(
         volume: resolvedVolume,
       })
 
-      const audioBuffer = await generateSpeech(safeMessage, voice, resolvedSettings)
-      await playAudio(audioBuffer, resolvedVolume)
+      // Start TTS generation immediately (concurrent across requests), then
+      // claim a FIFO playback slot. enqueuePlayback chains synchronously, so the
+      // slot is reserved in arrival order even though generation may finish out
+      // of order. Playback of clip N+1 thus overlaps generation, not clip N.
+      const audioBufferPromise = generateSpeech(safeMessage, voice, resolvedSettings)
+      // Mark the buffer promise handled so a generation failure while this
+      // request waits for its slot doesn't raise an unhandled-rejection; the
+      // real error is re-surfaced when the queued task awaits it below.
+      audioBufferPromise.catch(() => {})
+      await enqueuePlayback(async () => {
+        const audioBuffer = await audioBufferPromise
+        await playAudio(audioBuffer, resolvedVolume)
+      })
       voicePlayed = true
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error)

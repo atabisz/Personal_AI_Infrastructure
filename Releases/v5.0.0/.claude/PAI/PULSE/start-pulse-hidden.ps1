@@ -17,7 +17,7 @@ $ErrorActionPreference = 'Stop'
 
 $home_      = $env:USERPROFILE
 $bun        = Join-Path $home_ '.bun\bin\bun.exe'
-$pulseDir   = Join-Path $home_ '.claude\PAI\Pulse'
+$pulseDir   = Join-Path $home_ '.claude\PAI\PULSE'
 $server     = Join-Path $pulseDir 'pulse.ts'
 $log        = Join-Path $pulseDir 'pulse-server.log'
 $errLog     = Join-Path $pulseDir 'pulse-server.log.err'

@@ -26,7 +26,7 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 ' current user's profile so this works across machines regardless of username.
 Dim userProfile
 userProfile = shell.ExpandEnvironmentStrings("%USERPROFILE%")
-pulseDir = userProfile & "\.claude\PAI\Pulse"
+pulseDir = userProfile & "\.claude\PAI\PULSE"
 bunPath  = userProfile & "\.bun\bin\bun.exe"
 
 ' Bail quietly if prerequisites are missing — never pop an error dialog at login.
