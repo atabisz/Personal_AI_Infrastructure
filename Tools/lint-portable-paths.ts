@@ -89,10 +89,19 @@ interface Offense {
 // process.env.USERPROFILE ?? ...`) is NOT matched — it names USERPROFILE next.
 const HOME_BANG = /process\.env\.HOME\s*!/;
 const HOME_EMPTY_FALLBACK = /process\.env\.HOME\s*(\|\||\?\?)\s*(''|"")/;
-// A HOME read whose very next non-space token is NOT `process.env.USERPROFILE`
-// and NOT another `process.env.HOME` (already covered). This catches a bare
-// `process.env.HOME` used directly in a join without any fallback at all.
-const HOME_BARE = /process\.env\.HOME(?!\s*(\?\?|\|\|)\s*process\.env\.USERPROFILE)(?!\s*[!])/;
+// A HOME read whose very next non-space token is NOT a recognized non-empty
+// fallback. Two fallbacks are Windows-safe and must NOT be flagged:
+//   - `?? process.env.USERPROFILE`  (the env-var-first portable chain)
+//   - `?? homedir()` / `|| os.homedir()`  (os.homedir() returns the USERPROFILE
+//     dir on Windows, so it never collapses to a relative path — the portable.ts
+//     helper itself ends in `?? homedir()`).
+// This catches a bare `process.env.HOME` used directly in a join with no fallback.
+const HOME_BARE = /process\.env\.HOME(?!\s*(\?\?|\|\|)\s*(process\.env\.USERPROFILE|(?:os\.)?homedir\s*\(\s*\)))(?!\s*[!])/;
+
+// A truthiness guard (`if (process.env.HOME) ...`) proves the read on this line
+// is non-empty before use — not a Windows-breaking bare read. A line carrying
+// such a guard is skipped (the guarded value is safe by construction).
+const HOME_GUARD = /if\s*\(\s*process\.env\.HOME\s*\)/;
 
 // Hardcoded POSIX temp literal: '/tmp' or "/tmp" at a path boundary.
 const TMP_LITERAL = /['"]\/tmp(\/|['"])/;
@@ -113,9 +122,14 @@ function scanFile(absPath: string): Offense[] {
     const trimmed = lineText.trim();
     if (trimmed.startsWith('*') || trimmed.startsWith('//')) return;
 
-    if (HOME_BANG.test(lineText) || HOME_EMPTY_FALLBACK.test(lineText)) {
+    // A truthiness guard on the same line (`if (process.env.HOME) return process.env.HOME`)
+    // proves the read is non-empty — not a Windows-breaking bare read. Skip HOME checks
+    // for this line (the TMP check below still runs).
+    const homeGuarded = HOME_GUARD.test(lineText);
+
+    if (!homeGuarded && (HOME_BANG.test(lineText) || HOME_EMPTY_FALLBACK.test(lineText))) {
       offenses.push({ file: relPath, line: idx + 1, kind: 'HOME', text: trimmed.slice(0, 80) });
-    } else if (HOME_BARE.test(lineText)) {
+    } else if (!homeGuarded && HOME_BARE.test(lineText)) {
       offenses.push({ file: relPath, line: idx + 1, kind: 'HOME', text: trimmed.slice(0, 80) });
     }
     if (TMP_LITERAL.test(lineText)) {

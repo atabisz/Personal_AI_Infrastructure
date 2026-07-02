@@ -106,9 +106,35 @@ function expandTilde(p: string): string {
   return p.startsWith('~') ? p.replace('~', homedir()) : p;
 }
 
+// Canonicalize a path/pattern for the Windows file-path compare. This is a
+// STRICTLY win32-gated transform (no-op on macOS/Linux — see the platform guard)
+// so it cannot change the proven Unix behaviour. Two Windows-specific mismatches
+// made EVERY `paths:` entry silently no-op → PERMISSIVE before this:
+//   1. Separators. resolve() yields all-backslash (`C:\Users\example\.ssh\id_ed25519`)
+//      while the tilde-expanded PATTERNS.yaml pattern is mixed-separator
+//      (`C:\Users\example/.ssh/id_*`) and the glob regex uses `[^/]*` + literal `/`.
+//      So neither the exact `===`/startsWith compare nor the glob regex ever matched.
+//   2. Case. NTFS is case-insensitive, so `C:\Users\example\.SSH\ID_ED25519` is the SAME
+//      file as `.ssh/id_ed25519`, but a case-SENSITIVE regex/`===` let an uppercase
+//      reference bypass a lowercase deny pattern — the same MAJOR bypass class on a
+//      second axis (advisor 2026-07-02).
+// Folding BOTH separators and case on win32 makes the matcher enforce against the
+// actual Windows protected surface, with no widening — benign paths still don't match.
+// The gate is win32-ONLY on purpose: on macOS/Linux this returns the input untouched,
+// so the proven Unix behaviour is byte-identical (backslash is a legal POSIX filename
+// char; POSIX matching stays case-sensitive). NOTE (known residual, out of scope for
+// this Windows-parity fix): macOS default APFS is itself case-insensitive, so the same
+// casing-bypass class exists there under the case-SENSITIVE match — that is a
+// pre-existing condition, NOT introduced here, and closing it would change proven
+// macOS behaviour; tracked separately rather than folded in silently (Cato 2026-07-02).
+function toCanonicalPath(p: string): string {
+  if (process.platform !== 'win32') return p;   // POSIX: provable no-op — no touch.
+  return p.replace(/\\/g, '/').toLowerCase();
+}
+
 function matchesPathPattern(filePath: string, pattern: string): boolean {
-  const expandedPattern = expandTilde(pattern);
-  const normalizedPath = resolve(expandTilde(filePath));
+  const expandedPattern = toCanonicalPath(expandTilde(pattern));
+  const normalizedPath = toCanonicalPath(resolve(expandTilde(filePath)));
 
   if (pattern.includes('*')) {
     let regexStr = expandedPattern
