@@ -120,7 +120,11 @@ function isDenied(relPath: string): boolean {
   if (base.endsWith(".key") || base.endsWith(".pem")) return true;
   if (base.includes("secret") || base.includes("credential")) return true;
   return segments.some((segment) =>
-    [".git", "node_modules", "projects", "test-results", "pai_updates", "pai_backups", ".pai-sync-history"].includes(segment),
+    // `.cursor` = IDE-only rule dirs. They carry symlinks (rules/*.mdc -> ../../CLAUDE.md)
+    // that `cp -r` cannot recreate on unprivileged Windows, breaking both the windows-latest
+    // CI staging step and a real Windows install. A cross-platform release must be symlink-free.
+    // (build-bundles.ts already excludes .cursor for the same reason.)
+    [".git", "node_modules", "projects", "test-results", "pai_updates", "pai_backups", ".pai-sync-history", ".cursor"].includes(segment),
   );
 }
 
