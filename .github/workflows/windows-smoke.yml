@@ -15,16 +15,17 @@ name: Windows hook launch-parity smoke test
 on:
   push:
     paths:
-      - "Releases/**/.claude/settings.json"
-      - "Releases/**/.claude/hooks/**"
-      - "Releases/**/PAI/PAI-Install/engine/**"
+      # The whole staged release .claude tree — a symlink (or any staging-breaking artifact)
+      # can be reintroduced anywhere in it by a regen, so the guard must trigger on the whole tree.
+      - "Releases/**/.claude/**"
+      # The ingestion point: a build-release.ts change is exactly what could re-emit a symlink.
+      - "scripts/build-release.ts"
       - "Tools/smoke-hook-launch.ts"
       - ".github/workflows/windows-smoke.yml"
   pull_request:
     paths:
-      - "Releases/**/.claude/settings.json"
-      - "Releases/**/.claude/hooks/**"
-      - "Releases/**/PAI/PAI-Install/engine/**"
+      - "Releases/**/.claude/**"
+      - "scripts/build-release.ts"
       - "Tools/smoke-hook-launch.ts"
       - ".github/workflows/windows-smoke.yml"
   workflow_dispatch: {}

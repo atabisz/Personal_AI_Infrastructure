@@ -107,9 +107,25 @@ function resolveBashPath(): string | null {
  *  and CI stages the release under a scratch `HOME=$SCRATCH`. os.homedir() reads USERPROFILE on
  *  Windows (e.g. C:\Users\runneradmin), NOT $HOME — using it makes the static precheck look in a
  *  different directory than where the hooks are staged, producing false "script not found"
- *  LAUNCH-FAILs. Fall back to USERPROFILE then homedir() only when HOME is unset (portable chain). */
+ *  LAUNCH-FAILs. Fall back to USERPROFILE then homedir() only when HOME is unset (portable chain).
+ *
+ *  HOME-unset is made LOUD, not silent: a POSIX shell with HOME unset expands `$HOME` to the
+ *  EMPTY string, not to USERPROFILE — so if this tool silently fell back to USERPROFILE while the
+ *  `sh -c` launcher used empty, the precheck and the launcher would diverge again (the exact
+ *  false-green class the process.env.HOME fix closed). We warn once so that divergence can never
+ *  be silent for a release-integrity harness. */
+let warnedHomeUnset = false;
 function homeDir(): string {
-  return process.env.HOME ?? process.env.USERPROFILE ?? homedir();
+  if (process.env.HOME) return process.env.HOME;
+  if (!warnedHomeUnset) {
+    warnedHomeUnset = true;
+    console.warn(
+      "WARNING: $HOME is unset. The `sh -c` launcher expands $HOME to empty here, but this " +
+      "precheck falls back to USERPROFILE/homedir — results may diverge from the real launcher. " +
+      "Set HOME to match your launch environment for a faithful smoke test.",
+    );
+  }
+  return process.env.USERPROFILE ?? homedir();
 }
 function expandHome(s: string): string {
   return s.replace(/\$\{HOME\}/g, homeDir()).replace(/\$HOME/g, homeDir());
@@ -119,7 +135,10 @@ function expandHome(s: string): string {
 
 function resolveSettingsPath(args: ReturnType<typeof parseArgs>): string {
   if (args.settings) return args.settings;
-  if (args.live) return join(homedir(), ".claude", "settings.json");
+  // Use homeDir() (env $HOME first), NOT homedir(): --live must read settings from the SAME home
+  // the precheck resolves hook script paths against, else on a box where $HOME != USERPROFILE the
+  // two diverge — settings from one home, hook-existence checks against another (Cato finding).
+  if (args.live) return join(homeDir(), ".claude", "settings.json");
   // Default: the release snapshot this tool ships alongside.
   return join(dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "..", "Releases", "v5.0.0", ".claude", "settings.json");
 }
