@@ -68,9 +68,12 @@ urls=$(pbpaste)
 
 ```typescript
 import { isContentAlreadyParsed } from '../utils/collision-detection';
+import { homedir } from 'os';
+import { join } from 'path';
 
 const entityIndex = JSON.parse(
-  fs.readFileSync('~/.claude/skills/parser/entity-index.json', 'utf-8')
+  // `~` is not expanded by Node/Bun fs APIs — resolve $HOME explicitly.
+  fs.readFileSync(join(homedir(), '.claude', 'skills', 'parser', 'entity-index.json'), 'utf-8')
 );
 
 const newUrls = urls.filter(url => !isContentAlreadyParsed(url, entityIndex));
@@ -272,6 +275,8 @@ Process the extracted entities and assign GUIDs:
 ```typescript
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 
 interface EntityIndex {
   version: string;
@@ -453,7 +458,8 @@ function processArticleEntities(
 }
 
 // Main processing
-const entityIndexPath = '~/.claude/skills/parser/entity-index.json';
+// `~` is not expanded by Node/Bun fs APIs — resolve $HOME explicitly.
+const entityIndexPath = join(homedir(), '.claude', 'skills', 'parser', 'entity-index.json');
 const entityIndex: EntityIndex = JSON.parse(fs.readFileSync(entityIndexPath, 'utf-8'));
 
 const rawEntities = JSON.parse(fs.readFileSync('raw-entities.json', 'utf-8'));
@@ -479,12 +485,15 @@ Validate each processed article against the schema:
 ```typescript
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import { homedir } from 'os';
+import { join } from 'path';
 
 const ajv = new Ajv({ strict: false });
 addFormats(ajv);
 
 const schema = JSON.parse(
-  fs.readFileSync('~/.claude/skills/parser/schema/content-schema.json', 'utf-8')
+  // `~` is not expanded by Node/Bun fs APIs — resolve $HOME explicitly.
+  fs.readFileSync(join(homedir(), '.claude', 'skills', 'parser', 'schema', 'content-schema.json'), 'utf-8')
 );
 
 const validate = ajv.compile(schema);
@@ -556,7 +565,8 @@ processedArticles.forEach((article: any, index: number) => {
   } else {
     // Save validated content
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const filename = `~/.claude/skills/parser/output/${timestamp}_batch-${index + 1}.json`;
+    // `~` is not expanded by Node/Bun fs APIs — resolve $HOME explicitly.
+    const filename = join(homedir(), '.claude', 'skills', 'parser', 'output', `${timestamp}_batch-${index + 1}.json`);
     fs.writeFileSync(filename, JSON.stringify(fullContent, null, 2));
     console.log(`Saved: ${filename}`);
   }
