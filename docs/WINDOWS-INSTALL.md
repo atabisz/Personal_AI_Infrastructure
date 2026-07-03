@@ -134,6 +134,7 @@ Documented honestly so a future re-install or an upstream PR knows where the rou
 - **~~Coarse stop.~~** ~~`stop-pai.bat` uses `taskkill /F /IM bun.exe`, which kills every Bun process, not just the voice server.~~ **Resolved 2026-06-30** - this was more than coarse: with Pulse running as `bun.exe`, the command killed the live Pulse daemon and every Bun process. `stop-pai.bat` is now port-scoped to `:31337` (see Seam 7).
 - **~~Installer has no win32 case.~~** ~~`PAI/PAI-Install/engine/detect.ts` defaults unknown platforms to `"linux"` rather than detecting `win32` - fine here because the install was placed by hand, but it means the upstream installer still cannot do this natively.~~ **Resolved 2026-06-30** - the installer's detection engine, bootstrap, and daemon step were made cross-platform. See [The installer now supports Windows](#the-installer-now-supports-windows-2026-06-30).
 - **~~Literal `~` in BugBountyTool config paths.~~** ~~`skills/Security/WebAssessment/BugBountyTool/src/config.ts` hardcoded its local paths as literal `'~/.claude/skills/hacking/bug-bounties/...'` strings. Unlike the home-dir-fallback bug above, this never reached a shell - the strings flowed straight into `mkdir()`/path joins in `state.ts` and `recon.ts`, where Node/bun do not expand `~`, so a first run would have created a folder literally named `~` under the process cwd.~~ **Resolved 2026-06-30** - paths now derive from a `BOUNTY_ROOT = join(homedir(), '.claude', 'skills', 'hacking', 'bug-bounties')` constant, the same `homedir()`/`join()` pattern used elsewhere. Applied to the live tree (`atabisz/claude-config`, commit `aecac66`), the repo source at `Packs/Security/src/WebAssessment/BugBountyTool/src/config.ts` (commit `c7444f6`), and the frozen `Releases/v2.4` and `v2.5` snapshots, which carried the same bug (fixed alongside this update rather than left stale). The tool was never initialized on this machine (`~/.claude/skills/hacking/` does not exist), so the bug was latent everywhere.
+- **~~`DAIdentityGenerator.ts` asserted `HOME` was set.~~** ~~`PAI/TOOLS/DAIdentityGenerator.ts:15` built its DA directory as `join(process.env.HOME!, ".claude", "PAI", "USER", "DA")`. The `!` non-null assertion is false on Windows, where `HOME` is commonly unset (only `USERPROFILE` exists) - `join(undefined, ...)` then throws `TypeError: Path must be a string`. It also hardcoded the install at `~/.claude`. Its sibling `DAInterview.ts` (which *writes* the files this tool reads) was already safe.~~ **Resolved 2026-07-03** - the path now derives script-relative via `join(dirname(fileURLToPath(import.meta.url)), "..", "USER", "DA")`, the exact resolution `DAInterview.ts` uses; because this tool consumes that tool's output, resolving the same way guarantees they agree on the directory. No `$HOME` assumption - runtime-verified to resolve correctly with *both* `HOME` and `USERPROFILE` unset. Applied to the live tree (`atabisz/claude-config`, commit `285d8f5`) and the repo snapshot at `Releases/v5.0.0/.claude/PAI/TOOLS/DAIdentityGenerator.ts` (`atabisz/Personal_AI_Infrastructure`, commit `eca2340`). The other DA tools (`DAGrowth.ts`, `DASchedule.ts`) already used the canonical `HOME ?? USERPROFILE ?? homedir()` fallback and were left unchanged.
 
 Two formerly-stale documents, both addressed on 2026-06-30:
 
@@ -158,6 +159,33 @@ Two Windows-specific lessons from building these, worth recording because they b
 - **`Invoke-WebRequest` vs localhost health-checks.** On this Intune machine `Invoke-WebRequest http://localhost:31337` takes ~2.4s per call (WPAD proxy auto-discovery + progress rendering) even though curl returns in milliseconds - enough to blow a 2s timeout and falsely report Pulse down. The autostart installer uses a raw `HttpWebRequest` with `Proxy = $null` (~30ms), the curl-equivalent path.
 
 Scope: these are repo-source edits under `Releases/v5.0.0/.claude` (this repo, `atabisz/Personal_AI_Infrastructure`), committed as `6519307` on branch `docs/windows-install`. The daemon installer was tested end-to-end on this machine through the exact `child_process.spawn` path the wizard uses - registers autostart, confirms `:31337`, returns success - with the live Startup entry backed up and restored unchanged around each run.
+
+## Gotcha: `~` does not expand in PowerShell (shell issue, not bun)
+
+An agent that tells a Windows user to run `bun ~/.claude/PAI/TOOLS/DAInterview.ts` will send them straight into this error:
+
+```
+error: Module not found "~/.claude/PAI/TOOLS/DAInterview.ts"
+```
+
+It looks like bun can't handle `~` on Windows. It can't - but bun is not the problem, and neither is Windows specifically. **Tilde expansion is the shell's job, not the program's.** A program only ever receives the string the shell hands it:
+
+- **Bash/zsh expand a bare (unquoted) leading `~` to `$HOME` before the program is launched.** So under Git Bash, `bun ~/.claude/...` reaches bun as `/c/Users/<user>/.claude/...` and runs. (Quote it - `bun '~/...'` - and even bash passes the literal `~` through, reproducing the failure.)
+- **PowerShell does *not* expand `~` in arguments to external programs.** It only honors `~` inside its own path-aware cmdlets (`Set-Location ~`). Hand `~/...` to any external `.exe` - bun, node, git - and it receives the literal four characters `~/..`, which is not a real path. Hence "Module not found".
+
+This is why `bun .claude\PAI\TOOLS\DAInterview.ts` (a relative path, no `~`) worked from `C:\Users\<user>` while the `~` form failed: nothing needed expanding.
+
+Verified both directions on this machine: quoting `'~/...'` in bash reproduced the exact `Module not found "~/..."` error; the unquoted form expanded and launched the wizard.
+
+**What to hand a PowerShell user instead** - any of these (PowerShell expands `$HOME` / `$env:USERPROFILE` itself):
+
+```powershell
+bun $HOME\.claude\PAI\TOOLS\DAInterview.ts               # $HOME is a PowerShell variable
+bun "$env:USERPROFILE\.claude\PAI\TOOLS\DAInterview.ts"  # most explicit; always set on Windows
+bun .claude\PAI\TOOLS\DAInterview.ts                     # relative - only from C:\Users\<user>
+```
+
+**The rule for agents:** don't paste `~/...` commands to a user whose shell you don't know. On Windows/PowerShell, prefer `$env:USERPROFILE\...` (or `$HOME\...`); in bash, `~` or `$HOME` are both fine. This is the interactive-shell cousin of the in-code literal-`~` bugs in the technical-debt list above (BugBountyTool, the HOME-fallback sweep) - same root cause (`~` is not a universal path token), different layer.
 
 ## The core insight
 
