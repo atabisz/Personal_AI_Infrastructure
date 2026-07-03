@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="release-icon-v2.png" alt="LifeOS Releases" width="256">
+<img src="releases-icon.png" alt="LifeOS Releases" width="220">
 
 # LifeOS Releases
 
@@ -13,6 +13,8 @@
 Each release is a complete, installable snapshot. From **v6.0.0** onward LifeOS ships as a single self-contained skill your AI installs for you; earlier releases ship as complete `.claude/` directories you copy into your home folder.
 
 This is the fastest way to get LifeOS running.
+
+**A note on the older releases.** LifeOS began as **PAI (Personal AI Infrastructure)**. The earlier releases below — v2.3 through v5.0.0 — shipped under that name and framing before the rename; v5.0.0 reframed the system as a Life Operating System, and v6.0.0 is the first to ship as LifeOS. Same system, same lineage — they're kept here as the real history of how the Algorithm, skills, and memory came together.
 
 > **Note:** The `.claude` directory is hidden by default on macOS/Linux. Use `ls -la` to see it.
 
@@ -152,11 +154,19 @@ The release that introduced persistent learning and sentiment capture.
 
 ## Installation
 
-```bash
-# v6.0.0+ installs as a skill — let your AI do it:
-#   "install LifeOS"   (or)   curl -fsSL https://ourlifeos.ai/install.sh | bash
+**v6.0.0+** installs as a skill — give it to your AI. Paste this into any capable harness (Claude Code, Cursor, Codex, …):
 
-# Older releases (v2–v5) ship as a .claude/ directory:
+> **Read https://ourlifeos.ai/install and install LifeOS for me.**
+
+Or the one-line shortcut for Claude Code on macOS/Linux:
+
+```bash
+curl -fsSL https://ourlifeos.ai/install.sh | bash
+```
+
+**Older releases (v2–v5)** ship as a `.claude/` directory you copy in:
+
+```bash
 git clone https://github.com/danielmiessler/LifeOS.git
 cp -r LifeOS/Releases/v5.0.0/.claude ~/ && cd ~/.claude && bash install.sh
 ```
