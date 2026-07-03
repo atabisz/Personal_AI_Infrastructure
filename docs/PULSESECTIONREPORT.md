@@ -4,6 +4,12 @@
 > **Generated:** 2026-06-30 · **Pulse build:** `build_1778733456794` · **Probe:** all routes live, HTTP 200.
 > **Method:** Source read (`PAI/Pulse/Observability/src/app/<route>/page.tsx`) + live HTTP probe, fanned out across 3 parallel `Explore` subagents grouped by nav cluster. Read-only — no Pulse files were modified.
 
+> ### 🔄 Correction — 2026-07-03
+>
+> The original 2026-06-30 pass scored `/assistant` at **100% / 100%** on the strength of the *front-end* page (`assistant/page.tsx`, 643 LOC, full CRUD UI). That score was wrong: it measured the page in isolation and missed that **the backend the page depends on was never built**. Every `/assistant/*` data endpoint returns **404** because `assistantModule` is `null` — the `Pulse/Assistant/module` import never resolves (module unbuilt) and the subsystem is config-gated off (`[da]` absent from `PULSE.toml`). This is corroborated by this report's own "Key backend fact" (pulse.ts serves only four HTTP endpoints, none of them `/assistant/*`) and by the companion [PULSEASSISTANTIDENTITYFINDINGS.md](PULSEASSISTANTIDENTITYFINDINGS.md).
+>
+> `/assistant` is re-scored to **40% completion / 50% maturity** (UI built = the 40% UI-implementation axis; data-wiring axis = 0, backend never written; partial feature credit for the front-end interactions that would work once wired). The blended aggregates are recomputed accordingly: **completion ≈68% (was 71%), maturity ≈87% (was 89%)**. Superseded 2026-06-30 figures are marked inline below.
+
 ## Scoring rubric
 
 Every completion % below is a derived figure (treated as a conjecture until grounded in evidence), computed against **one shared rubric** applied identically to all sections, rounded to the nearest 5:
@@ -31,7 +37,7 @@ Every completion % below is a derived figure (treated as a conjecture until grou
 | 5 | `/health` HEALTH | Life | Health hub: labs, fitness, nutrition, metrics, conditions | 40% | 85% |
 | 6 | `/finances` FINANCES | Life | P&L dashboard: income/expense/overall, cash-flow sankey | 45% | 90% |
 | 7 | `/business` BUSINESS | Life | Revenue streams, product breakdown, pipeline, company overview | 50% | 85% |
-| 8 | `/assistant` Assistant | System | Manage the DA's identity, personality, tasks, diary, opinions | 100% | 100% |
+| 8 | `/assistant` Assistant | System | Manage the DA's identity, personality, tasks, diary, opinions | 40% ~~100%~~ | 50% ~~100%~~ |
 | 9 | `/agents` Agents | System | Tabbed work modes: iterate/optimize/ideate/loop/native/ladder | 95% | 95% |
 | 10 | `/knowledge` Knowledge | System | Searchable knowledge archive + graph (people/companies/ideas) | 100% | 100% |
 | 10a | `/knowledge/graph` | sub-view | Interactive knowledge graph visualization | 100% | 100% |
@@ -47,12 +53,12 @@ Every completion % below is a derived figure (treated as a conjecture until grou
 | 20 | `/system` | **non-nav** | Wiki knowledge-graph + doc index (overlaps `/docs`+`/knowledge`) | 70% | 85% |
 | 20a | `/system/graph` | sub-view | System knowledge graph visualization | 70% | 85% |
 
-**Overall maturity gradient (the real story).** Averaging the 19 distinct sections (Home excluded as an alias): blended **completion ≈ 71%**, but **software maturity ≈ 89%**. The 18-point gap *is* the headline — **Pulse the codebase is near-production-ready; what's missing is install data, not code.** Two corrections the raw completion number hides:
+**Overall maturity gradient (the real story).** Averaging the 19 distinct sections (Home excluded as an alias): blended **completion ≈ 68%** (~~71%~~ before the 2026-07-03 `/assistant` correction), but **software maturity ≈ 87%** (~~89%~~). The ~19-point gap *is* the headline — **Pulse the codebase is near-production-ready; what's missing is install data, not code** — *with one genuine exception, `/assistant`, whose backend was never built (see the 2026-07-03 correction).* Two corrections the raw completion number hides:
 
 1. **The nav-order "inversion" is an artifact of the install, not the code.** On completion, System wiki pages (95–100%) outrank Life pages (40–65%); on maturity they're near-equal (85–100%). The Life cluster looks immature only because `USER/*` source files are empty here — populate them and those pages self-complete with zero code change.
 2. **Static pages reach 100% trivially.** `/docs`, `/knowledge`, `/skills` hit 100% partly because they have no data dependency to be empty; that is not evidence they are "more built" than the data-driven Life dashboard. Compare on **maturity**, not completion, across static vs data-driven surfaces.
 
-The genuine implementation gaps (where maturity itself is <90%) are: **`/security` (75%** — RulesInspector disabled by design), **`/ladder` (75%** — thin/missing backend), and **`/agents` (95%** — data wiring delegated to opaque sub-components).
+The genuine implementation gaps (where maturity itself is <90%) are: **`/assistant` (50%** — front-end fully built but its entire backend module was never written and is config-gated off; every `/assistant/*` API 404s — corrected 2026-07-03), **`/security` (75%** — RulesInspector disabled by design), **`/ladder` (75%** — thin/missing backend), and **`/agents` (95%** — data wiring delegated to opaque sub-components).
 
 ---
 
@@ -105,13 +111,14 @@ These six pages share a pattern: **complete, polished UI with Recharts visualiza
 
 ## System cluster
 
-The System cluster splits cleanly. The **wiki-backed group (`/assistant`, `/agents`, `/knowledge`, `/docs`, `/skills`) is production-ready** — they read live data through the mature `/api/wiki` backend and ship full CRUD interactions. The **infrastructure group (`/hooks`, `/arbol`, `/security`, `/performance`) is strong but each has a specific gap.**
+The System cluster splits cleanly. The **wiki-backed group (`/agents`, `/knowledge`, `/docs`, `/skills`) is production-ready** — they read live data through the mature `/api/wiki` backend and ship full CRUD interactions. **`/assistant` is the exception in this cluster** — its front-end is equally polished, but it depends on a dedicated Assistant module that was never built (endpoints 404), so it is re-scored down (see §8, corrected 2026-07-03). The **infrastructure group (`/hooks`, `/arbol`, `/security`, `/performance`) is strong but each has a specific gap.**
 
 ### 8. `/assistant` — Assistant
 - **Goal:** Display and manage the DA's identity, personality, scheduled tasks, diary entries, and formed opinions.
-- **Completion:** **100%** — fully wired, full CRUD.
-- **Evidence:** `assistant/page.tsx` (643 LOC). 6 `useQuery` calls to `/assistant/*`; 3 mutations (create/cancel task, update trait — POST/DELETE/PATCH). Identity card, stats, 3 tabs, working forms. No stub markers.
-- **Sub-views:** Tasks · Personality · Diary tabs (independent fetches + interactions).
+- **Completion:** **40%** (~~100%~~ — corrected 2026-07-03) — UI-complete, but **backend never built; all data APIs 404.**
+- **Maturity:** **50%** (~~100%~~) — the 40% UI axis is fully earned; the 35% data-wiring axis is zero (no server module exists); partial feature-completeness credit for the front-end interactions that would work once wired.
+- **Evidence:** `assistant/page.tsx` (643 LOC) is genuinely complete — 6 `useQuery` calls to `/assistant/*`, 3 mutations (create/cancel task, update trait — POST/DELETE/PATCH), identity card, stats, 3 tabs, working forms, no stub markers. **But the original 100% score measured only the page.** Live probe (2026-07-03): `/assistant/identity`, `/assistant/health`, `/assistant/personality`, `/assistant/tasks`, `/assistant/diary`, `/assistant/opinions` **all return HTTP 404**. Root cause: `pulse.ts:117-119` imports `./Assistant/module` only if `config.da?.enabled`, and `pulse.ts:438` routes `/assistant/*` only if that module loaded — but the module **does not exist on disk** and `PULSE.toml` has **no `[da]` section** (so `config.da` defaults `{enabled:false}` at `pulse.ts:206`). `assistantModule` is therefore `null` and the page renders `EmptyStateGuide`, not the identity card. This is consistent with the report's own "Key backend fact" (only four HTTP endpoints served) — `/assistant/*` was never among them. Full trace: [PULSEASSISTANTIDENTITYFINDINGS.md](PULSEASSISTANTIDENTITYFINDINGS.md). *(A DA identity `garry` was generated on disk 2026-07-03, but no Pulse code reads it yet.)*
+- **Sub-views:** Tasks · Personality · Diary tabs — front-end present; all render empty because their fetches 404.
 
 ### 9. `/agents` — Agents
 - **Goal:** Tabbed interface for work modes — iterate, optimize, ideate, loop, native, ladder — plus actions.
@@ -207,7 +214,7 @@ These four routes respond (HTTP 200) but are **not linked from `AppHeader`** (`l
 
 - **A low Life-cluster score is not broken code.** Every Life page is UI-complete and wired to a real backend — it scores low because the **source data** (`USER/HEALTH/*`, `vendors.yaml`, `CURRENT.md`, …) isn't present on this install. Populate those files and these jump to 80–95% with no code change.
 - **The System wiki pages (100%)** are the maturity benchmark — they read live data through the one fully-built backend (`/api/wiki`) and ship complete CRUD.
-- **`/security` (65%)** and **`/agents` (95%)** are the two where the score reflects a genuine implementation gap (a disabled inspector tab; opaque sub-component data wiring) rather than missing source data.
+- **`/assistant` (40%/50%)**, **`/security` (65%)**, and **`/agents` (95%)** are where the score reflects a genuine implementation gap rather than missing source data — respectively: an entire backend module never built (all APIs 404, corrected 2026-07-03); a disabled inspector tab; opaque sub-component data wiring.
 - **`/system` overlaps `/docs`+`/knowledge`** and is unlinked — likely a predecessor superseded by the promoted System-nav pages.
 
 *Report produced read-only; no files under `~/.claude/PAI/Pulse/` were modified.*
