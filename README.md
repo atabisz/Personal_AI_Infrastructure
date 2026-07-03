@@ -4,8 +4,6 @@
 
 <div align="center">
 
-<img alt="LifeOS" src="./images/lifeos-logo.png" width="240">
-
 # LifeOS
 
 **The Life Operating System**
