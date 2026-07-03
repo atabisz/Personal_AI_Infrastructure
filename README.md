@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./lifeos-logo-full.png" alt="LifeOS" width="460">
+</p>
+
 <div align="center">
 
 <img alt="LifeOS" src="./images/lifeos-logo.png" width="240">
