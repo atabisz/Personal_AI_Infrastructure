@@ -21,13 +21,19 @@ LifeOS is a Life Operating System. It captures who you are, what you care about,
 
 ## Install
 
-**Give it to your AI.** Paste this into your AI coding harness — Claude Code, or any other high-end agent — and say **"install this"**. Your AI does the whole setup for you.
+**Give it to your AI.** LifeOS is installed *by* an AI, so the install is just a prompt. Paste this into your AI coding harness — Claude Code, Cursor, Codex, or any capable agent — and it does the whole setup for you:
+
+> **Read https://ourlifeos.ai/install and install LifeOS for me.**
+
+Your AI reads the install page and walks the setup, asking permission before it touches anything.
+
+**Prefer the terminal?** There's a one-line shortcut for Claude Code on macOS/Linux:
 
 ```bash
 curl -fsSL https://ourlifeos.ai/install.sh | bash
 ```
 
-Prefer the terminal? Run the same command yourself. You'll need a capable AI coding harness — we build and run on [Claude Code](https://docs.claude.com/claude-code) — and [bun](https://bun.sh).
+Either path needs a capable AI coding harness — we build and run on [Claude Code](https://docs.claude.com/claude-code) — and [bun](https://bun.sh).
 
 ## Core Components
 
