@@ -39,3 +39,20 @@ enabled = true
 # Health check interval in seconds
 interval = 300
 # Add your custom checks in checks/
+
+# ── Digital Assistant (DA) subsystem ──
+# Gate for Assistant/module.ts. `enabled = true` makes pulse.ts import the
+# module and serve /assistant/*. Source of truth for WHICH DA is active and its
+# identity is _registry.yaml (primary:) + PAI/USER/DA/<primary>/ — NOT this file.
+# This section holds only the operational schedule (registry-as-truth, plan §6
+# Option A). pulse.ts reads these as top-level parsed.da keys via smol-toml.
+[da]
+enabled = true
+# Heartbeat: the AS1 proactivity primitive. Every 30 min, Layer 1 gathers
+# context (free), Layer 2 (Haiku via Inference.ts) decides NO_ACTION | notify.
+heartbeat_schedule = "*/30 * * * *"
+heartbeat_model = "fast"          # Inference.ts level → Haiku. NEVER claude --bare (billing).
+heartbeat_cost_ceiling = 0.10     # USD per heartbeat evaluation
+# Growth cadence (diary nightly, opinions weekly). Reserved for the growth jobs.
+diary_schedule = "0 23 * * *"
+growth_schedule = "0 4 * * 0"

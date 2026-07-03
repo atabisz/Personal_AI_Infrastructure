@@ -10,72 +10,11 @@
  *   bun PAI/TOOLS/DASchedule.ts history            # Completed/cancelled
  */
 
-import { join } from "path"
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs"
-import { homedir } from "os"
-
-const HOME = process.env.HOME ?? process.env.USERPROFILE ?? homedir()
-const PAI_DIR = join(HOME, ".claude", "PAI")
-const TASKS_DIR = join(PAI_DIR, "Pulse", "state", "da")
-const TASKS_PATH = join(TASKS_DIR, "scheduled-tasks.jsonl")
-
-// ── Types ──
-
-interface ScheduledTask {
-  id: string
-  created_at: string
-  created_by: string
-  description: string
-  schedule: {
-    type: "once" | "recurring"
-    at?: string
-    cron?: string
-    until?: string
-  }
-  action: {
-    type: "notify" | "prompt" | "script"
-    message?: string
-    channel?: string
-    prompt?: string
-    model?: string
-    command?: string
-  }
-  status: "active" | "completed" | "cancelled"
-  last_fired?: string
-  fire_count: number
-}
-
-// ── Task Store I/O ──
-
-function ensureDir(): void {
-  if (!existsSync(TASKS_DIR)) {
-    mkdirSync(TASKS_DIR, { recursive: true })
-  }
-}
-
-function readTasks(): ScheduledTask[] {
-  try {
-    if (!existsSync(TASKS_PATH)) return []
-    const content = readFileSync(TASKS_PATH, "utf-8")
-    return content
-      .split("\n")
-      .filter((line) => line.trim())
-      .map((line) => JSON.parse(line) as ScheduledTask)
-  } catch {
-    return []
-  }
-}
-
-function writeTasks(tasks: ScheduledTask[]): void {
-  ensureDir()
-  const content = tasks.map((t) => JSON.stringify(t)).join("\n") + "\n"
-  writeFileSync(TASKS_PATH, content)
-}
-
-function appendTask(task: ScheduledTask): void {
-  ensureDir()
-  appendFileSync(TASKS_PATH, JSON.stringify(task) + "\n")
-}
+// Task store I/O + the ScheduledTask type are shared with Assistant/module.ts
+// via one lib — a single path expression, so the CLI and the daemon endpoints
+// never diverge across platforms (auto-extract-shared-helper rule).
+import type { ScheduledTask } from "../PULSE/Assistant/store"
+import { readTasks, writeTasks, appendTask } from "../PULSE/Assistant/store"
 
 // ── CLI Argument Parsing ──
 

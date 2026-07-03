@@ -2,9 +2,11 @@
 
 **The DA subsystem formalizes how PAI instantiates, manages, and evolves a Digital Assistant. It turns DA_IDENTITY from a flat markdown file into a living schema with interview-based creation, heartbeat-driven proactivity, natural-language scheduling, identity growth, and multi-DA awareness.**
 
-**Version:** 1.0 (Design)
-**Location:** Integrated into Pulse (`modules/da.ts`) + PAI/USER/DA/
-**Status:** Architecture complete, pending implementation
+**Version:** 1.0 (Design) — implemented 2026-07-03
+**Location:** Integrated into Pulse (`PULSE/Assistant/module.ts`, with `PULSE/Assistant/{heartbeat,store}.ts`) + PAI/USER/DA/
+**Status:** Implemented. The authoritative module path is `PULSE/Assistant/module.ts` (what `pulse.ts` imports at `pulse.ts:119`), NOT the `modules/da.ts` this design doc originally proposed — the daemon call-site is the real contract. Older `modules/da.ts` references below are historical design notes.
+
+> **Autonomy enforcement contract (load-bearing — read before building the fire-executor).** `must_ask` is enforced at the module level per Miessler's intent, and it fails CLOSED: a scheduled task whose action falls under `autonomy.must_ask` is stored with `status: "pending_approval"`, NOT `"active"`. The heartbeat gates its own `notify` via `requiresConfirmation()`. **A future scheduled-task fire-executor MUST only run `status: "active"` tasks and MUST honor `requires_confirmation` before firing anything else — storage intentionally does NOT block queueing (a must_ask task is a legitimate thing to queue for approval), so the executor is the enforcement point.** Because `pending_approval` is inert-by-default, an executor that naively iterates `active` tasks skips must_ask actions automatically.
 
 ---
 
