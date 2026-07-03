@@ -10,13 +10,9 @@
 
 ## What Are Releases?
 
-Each release is a complete, installable snapshot. From **v6.0.0** onward LifeOS ships as a single self-contained skill your AI installs for you; earlier releases ship as complete `.claude/` directories you copy into your home folder.
+LifeOS ships as a **single self-contained skill** — your AI installs it for you. Each release is a versioned snapshot of that skill. There's no `~/.claude/` directory to copy; installing the skill *is* the install.
 
-This is the fastest way to get LifeOS running.
-
-**A note on the older releases.** LifeOS began as **PAI (Personal AI Infrastructure)**. The earlier releases below — v2.3 through v5.0.0 — shipped under that name and framing before the rename; v5.0.0 reframed the system as a Life Operating System, and v6.0.0 is the first to ship as LifeOS. Same system, same lineage — they're kept here as the real history of how the Algorithm, skills, and memory came together.
-
-> **Note:** The `.claude` directory is hidden by default on macOS/Linux. Use `ls -la` to see it.
+**About the older releases.** LifeOS began as **PAI (Personal AI Infrastructure)**, and back then it shipped as a `~/.claude/` directory you installed into your home folder. Releases **v2.3–v5.0.0** are that era — kept here for history, not for new installs. **v6.0.0** is the first skill-based release and the current model. Same system, same lineage — just no longer a `.claude/` directory.
 
 ---
 
@@ -34,6 +30,10 @@ LifeOS ships as a single self-contained skill, not a `.claude/` copy — the ful
 **[Get v6.0.0 →](v6.0.0/)**
 
 ---
+
+## Legacy Releases (`.claude/`-era)
+
+These predate the skill model — they shipped as `~/.claude/` directories. Kept for history; **not** the current install path.
 
 ### v5.0.0 — Life Operating System
 
@@ -154,7 +154,7 @@ The release that introduced persistent learning and sentiment capture.
 
 ## Installation
 
-**v6.0.0+** installs as a skill — give it to your AI. Paste this into any capable harness (Claude Code, Cursor, Codex, …):
+LifeOS installs as a skill — give it to your AI. Paste this into any capable harness (Claude Code, Cursor, Codex, …):
 
 > **Read https://ourlifeos.ai/install and install LifeOS for me.**
 
@@ -164,24 +164,19 @@ Or the one-line shortcut for Claude Code on macOS/Linux:
 curl -fsSL https://ourlifeos.ai/install.sh | bash
 ```
 
-**Older releases (v2–v5)** ship as a `.claude/` directory you copy in:
+The install asks for your name, AI name, timezone, temperature unit, and optional voice preferences.
 
-```bash
-git clone https://github.com/danielmiessler/LifeOS.git
-cp -r LifeOS/Releases/v5.0.0/.claude ~/ && cd ~/.claude && bash install.sh
-```
+**Legacy releases (v2–v5)** installed the old way — as a `~/.claude/` directory with their own `install.sh`. That's no longer how LifeOS works; if you specifically need an old version, follow that release's own README. New installs use the skill above.
 
-The wizard asks for your name, AI name, timezone, temperature unit, and optional voice preferences.
-
-See the [main README](../README.md#upgrading-from-a-previous-version) for upgrade instructions.
+See the [main README](../README.md) for more.
 
 ---
 
 ## Troubleshooting
 
-**Can't see .claude directory?** It's hidden. Use `ls -la ~/` or press `Cmd+Shift+.` in Finder.
+**Install didn't take?** Re-run it — just ask your AI to install LifeOS again from [ourlifeos.ai/install](https://ourlifeos.ai/install).
 
-**Hooks not firing?** Restart Claude Code after installation.
+**Hooks not firing?** Restart your harness after installation.
 
 ---
 
