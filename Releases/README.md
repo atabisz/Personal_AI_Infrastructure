@@ -157,8 +157,8 @@ The release that introduced persistent learning and sentiment capture.
 #   "install LifeOS"   (or)   curl -fsSL https://ourlifeos.ai/install.sh | bash
 
 # Older releases (v2–v5) ship as a .claude/ directory:
-git clone https://github.com/danielmiessler/PAI.git
-cp -r PAI/Releases/v5.0.0/.claude ~/ && cd ~/.claude && bash install.sh
+git clone https://github.com/danielmiessler/LifeOS.git
+cp -r LifeOS/Releases/v5.0.0/.claude ~/ && cd ~/.claude && bash install.sh
 ```
 
 The wizard asks for your name, AI name, timezone, temperature unit, and optional voice preferences.
