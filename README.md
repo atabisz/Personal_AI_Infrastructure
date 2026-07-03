@@ -21,13 +21,13 @@ LifeOS is a Life Operating System. It captures who you are, what you care about,
 
 ## Install
 
-**Give it to your AI.** Paste this into Claude Code (or any AI coding harness) and say **"install this"** — your AI does the whole setup for you.
+**Give it to your AI.** Paste this into your AI coding harness — Claude Code, or any other high-end agent — and say **"install this"**. Your AI does the whole setup for you.
 
 ```bash
 curl -fsSL https://ourlifeos.ai/install.sh | bash
 ```
 
-Prefer the terminal? Run the same command yourself. You'll need [Claude Code](https://docs.claude.com/claude-code) and [bun](https://bun.sh).
+Prefer the terminal? Run the same command yourself. You'll need a capable AI coding harness — we build and run on [Claude Code](https://docs.claude.com/claude-code) — and [bun](https://bun.sh).
 
 ## Core Components
 
@@ -47,11 +47,9 @@ Packs are standalone, AI-installable capabilities you can add to any AI coding h
 
 ## ❓ FAQ
 
-### How is LifeOS different from just using Claude Code?
+### How is LifeOS different from using an AI harness on its own?
 
-LifeOS is built natively on Claude Code and designed to stay that way. We chose Claude Code because its hook system, context management, and agentic architecture are the best foundation available for personal AI infrastructure.
-
-LifeOS isn't a replacement for Claude Code — it's the layer on top that makes Claude Code *yours*:
+Your harness gives you raw capability. LifeOS is the layer on top that makes it *yours* — a system that knows your goals, people, and context, and keeps working toward them:
 
 - **Persistent memory** — Your DA remembers past sessions, decisions, and learnings
 - **Custom skills** — Specialized capabilities for the things you do most
@@ -59,19 +57,13 @@ LifeOS isn't a replacement for Claude Code — it's the layer on top that makes 
 - **Intelligent routing** — Say "research this" and the right workflow triggers automatically
 - **Self-improvement** — The system modifies itself based on what it learns
 
-Think of it this way: Claude Code is the engine. LifeOS is everything else that makes it *your* car.
+Your harness is the engine. LifeOS is everything else that makes it *your* car.
 
-### What's the difference between LifeOS and Claude Code's built-in features?
+### What harness does LifeOS run on?
 
-Claude Code provides powerful primitives — hooks, slash commands, MCP servers, context files. These are individual building blocks.
+Any high-end one. LifeOS is harness-agnostic by design — it's built on universal primitives (hooks, skills, context files, agentic routing), not one vendor's features. The code is TypeScript and Bash, and the core ideas — TELOS, the Algorithm, skills, memory — port to any capable agent.
 
-LifeOS is the complete system built on those primitives. It connects everything together: your goals inform your skills, your skills generate memory, your memory improves future responses. LifeOS turns Claude Code's building blocks into a coherent personal AI platform.
-
-### Is LifeOS only for Claude Code?
-
-LifeOS is Claude Code native. We believe Claude Code's hook system, context management, and agentic capabilities make it the best platform for personal AI infrastructure, and LifeOS is designed to take full advantage of those features.
-
-That said, LifeOS's concepts (skills, memory, algorithms) are universal, and the code is TypeScript and Bash — so community members are welcome to adapt it for other platforms.
+Daniel builds and runs it on [Claude Code](https://docs.claude.com/claude-code), so that's the most-tested path today. But LifeOS isn't locked to it, and it's designed to run wherever your AI does.
 
 ### How is this different from fabric?
 
