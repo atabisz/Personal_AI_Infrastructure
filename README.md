@@ -35,23 +35,23 @@ Prefer the terminal? Run the same command yourself. You'll need [Claude Code](ht
 
 <table>
 <tr>
-<td width="33%" valign="top" align="center">
+<td width="20%" valign="top" align="center">
 
 ### 🎯
 **Current → Ideal State**
 
-Name where you are and where you want to be, then close the gap with steps you can check.
+Name where you are and where you want to be, then close the gap with checkable steps.
 
 </td>
-<td width="33%" valign="top" align="center">
+<td width="20%" valign="top" align="center">
 
 ### 🧭
 **TELOS**
 
-Your mission, goals, beliefs, and challenges — the file the system reasons against.
+Your mission, goals, and challenges — the file the system reasons against.
 
 </td>
-<td width="33%" valign="top" align="center">
+<td width="20%" valign="top" align="center">
 
 ### ⚙️
 **The Algorithm**
@@ -59,56 +59,62 @@ Your mission, goals, beliefs, and challenges — the file the system reasons aga
 A seven-phase engine that turns a vague ask into a testable spec and climbs toward it.
 
 </td>
-</tr>
-<tr>
-<td valign="top" align="center">
+<td width="20%" valign="top" align="center">
+
+### 📋
+**The ISA**
+
+The Ideal State Artifact — one document capturing what "done" is, as verifiable criteria.
+
+</td>
+<td width="20%" valign="top" align="center">
 
 ### 🧩
 **The Skill System**
 
-100+ self-activating, composable units of expertise, each fired by a natural-language trigger.
-
-</td>
-<td valign="top" align="center">
-
-### 🪝
-**The Hook System**
-
-Guardrails that are code, not good intentions, enforced at fixed points every session.
-
-</td>
-<td valign="top" align="center">
-
-### 🔀
-**The Router System**
-
-Every prompt routed to the right effort and the right model, automatically.
+100+ self-activating, composable units of expertise.
 
 </td>
 </tr>
 <tr>
-<td valign="top" align="center">
+<td width="20%" valign="top" align="center">
+
+### 🪝
+**The Hook System**
+
+Guardrails that are code, not good intentions, enforced every session.
+
+</td>
+<td width="20%" valign="top" align="center">
+
+### 🔀
+**The Router System**
+
+Every prompt routed to the right effort and model, automatically.
+
+</td>
+<td width="20%" valign="top" align="center">
 
 ### 📊
 **Pulse**
 
-The Life Dashboard — the live surface where you watch the whole system run.
+The Life Dashboard — where you watch the whole system run.
 
 </td>
-<td valign="top" align="center">
+<td width="20%" valign="top" align="center">
 
 ### ✨
 **Custom Spinner Verbs**
 
-Your own animated working-verb and rotating tips in the statusline.
+Your own animated working-verb and tips in the statusline.
 
 </td>
-<td valign="top" align="center">
+<td width="20%" valign="top" align="center">
 
 ### 💬
 **Custom Tooltips**
 
-The dashboard explains itself on hover instead of sending you to a manual.
+The dashboard explains itself on hover, no manual needed.
 
 </td>
 </tr>

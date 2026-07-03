@@ -58,6 +58,7 @@ One install lays down the whole system:
 
 - **Current → Ideal State** and your **TELOS** — what you're working toward
 - **The Algorithm** (v6.23.0) — the loop that turns a request into criteria and climbs until they hold
+- **The ISA (Ideal State Artifact)** — one document capturing what "done" looks like as verifiable criteria; every Algorithm run climbs against it
 - **49 skills**, the **hook system**, and the **router**
 - **Pulse** — your Life Dashboard, with custom spinner verbs and tooltips
 - **Memory**, **voice**, and a **USER template** you fill in with your own goals
