@@ -6,7 +6,7 @@
 
 <div align="center">
 
-**The Life Operating System**
+**The AI-Powered Life Operating System**
 
 [![Release](https://img.shields.io/github/v/release/danielmiessler/LifeOS?style=flat&color=8B5CF6)](Releases/v6.0.0/)
 [![Algorithm](https://img.shields.io/badge/Algorithm-v6.23.0-D97706?style=flat)](Releases/v6.0.0/README.md)
