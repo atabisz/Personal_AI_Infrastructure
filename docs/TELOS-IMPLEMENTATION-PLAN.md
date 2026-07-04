@@ -278,6 +278,7 @@ These change scope materially and are the user's call (ISC-21):
 | Live backend port (adapt to `~/.claude/PAI` paths, preserve Windows HOME hardening) | — | `8026006` |
 | Phase 3 (Projects + nested Work) | `788ea29` | `b7529f6` |
 | Phase 4 (dimensions HZ-5 + stranded + idealState) | `fb93a02` | `5fdd4d8` |
+| owner (from principal identity) + port summary.ts engine to live | `708787c` | `c38bbf6` |
 
 **Shipped (both trees):** module-scope boundary-aware `refsByPrefix` (HZ-3/HZ-4), `pickLabeledValue`/`pickRefs`/`mergeRefs` (HZ-2), `normalizeGoalNumber` (now rejects date-shaped targets)/`computeGoalPct`, `parseMetrics` (phantom-entry guard), `normStatus`/`parseProjects` (PR# block-splitter with nested `W#` rows, pipe-in-title safe, dedupe-by-id); Phase-1 reads (severity/horizon/active/pct); Phase-2 metrics + bidirectional goal↔metric links; Phase-3 projects + work; `isPersonalized` counts metrics+projects (HZ-1, fork tree; the live tree's older handler has no fixture gate).
 
@@ -285,10 +286,12 @@ These change scope materially and are the user's call (ISC-21):
 
 **Live-on-your-dashboard status:** `/api/telos/overview` on the running daemon returns real parsed problems/missions/goals/strategies/challenges + `metrics`(array) + `projects`(array with nested work). The sample `METRICS.md`/`PROJECTS.md` scaffolds provide a starting point; your real TELOS files are still prose without `K#`/`PR#`/KPI sub-fields, so those surfaces show sample/empty until authored (via `/interview` or by hand) — code ready, data pending.
 
+**Done since Phase 4:**
+- **`owner`** ✅ — `buildOwner()` reads `**Name:**` from the identity file (live: `PRINCIPAL_IDENTITY.md`; fork: `BASICINFO.md`→`ABOUTME.md`), line-anchored capture + placeholder filter (`user`/`your name`/`tbd`/`(interview)` → null); `day`=server date, `streak`=0. Fork `708787c`, live `c38bbf6`. Live-verified: `owner.name` "Alex Tabisz".
+- **`summary.ts` on live** ✅ — ported the fork's analysis engine into the live `_v7/` + a `.hero-summary` block (headline/position/traction/pinch/drift), gated on the backend's authoritative `meta.isPersonalized` (added to the live overview + threaded through `useTelosData`→`app`→`Hero`, so it can't analyze the FALLBACK fixture — Cato F1). Live-verified in real Chrome. Same commit `c38bbf6`.
+
 **Deferred / follow-up:**
-- **`owner`** — still `null` (deferred within Phase 4): `owner.name` has no clean identity source in the handler; `day` needs a server date, `streak` needs a store. Small follow-up.
-- **`summary.ts` on live** — the live tree has no `summary.ts` (it's the older client), so Phase 4's dimension/stranded inputs light up the fork's analysis engine but not live's (live has no such engine to feed). Live still benefits: hero mood-rings + stranded section render.
-- **Live client fixture-blend** — live `use-telos-data.ts` merges live-over-FALLBACK and skips null fields, so a `null` primitive (e.g. `idealState` on this install) shows the FALLBACK sample. Pre-existing older-client behavior, not introduced by Phase 4; the parallel of the fork's gate hole.
+- **Live client fixture-blend (narrowed)** — the summary is now correctly gated on `meta.isPersonalized`, but the older live `use-telos-data.ts` still shows FALLBACK samples for individual `null` primitives (e.g. `idealState`). Pre-existing older-client behavior; the parallel of the fork's gate hole. A full fix would invert the merge to per-field authoritative.
 - **Team / Budget** — deliberately skipped (Q2 — not Miessler-canonical: Team is corporate-TCF-only, Budget isn't in his model).
 - **Metric history / sparklines / real `delta`** — deferred (Q3); needs a time-series store (`METRICS_LOG.md`, Miessler's dated CURRENT-STATE pattern).
 - **Gate hole (Cato Finding 2, MAJOR, PRE-EXISTING, fork tree only):** `isPersonalized` still returns false for an install that authored ONLY dimensions/narratives/preferences → `mergeTelos` serves the FALLBACK fixture over real data (2026-06-09 class). Not introduced by this work. **Recommended:** fold `dimensions.length`, non-null narratives, and populated preferences into the gate, or invert it to "personalized unless every source is empty."
