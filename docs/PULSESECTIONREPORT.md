@@ -37,7 +37,7 @@ Every completion % below is a derived figure (treated as a conjecture until grou
 | # | Section | Nav | Goal (one-liner) | Completion | Maturity |
 |---|---------|-----|------------------|-----------:|---------:|
 | 1 | `/` Home | primary | Alias — re-exports the TELOS v7 app (same as `/telos`) | *(alias)* | *(alias)* |
-| 2 | `/telos` TELOS | Life | Strategic framework: 11 primitives in column/tree/graph views | 85% ~~65%~~ | 98% ~~90%~~ |
+| 2 | `/telos` TELOS | Life | Strategic framework: 11 primitives in column/tree/graph views | 90% ~~85%~~ ~~65%~~ | 99% ~~98%~~ ~~90%~~ |
 | 3 | `/life` LIFE | Life | Aggregate life overview across all domains + narrative synthesis | 55% | 90% |
 | 4 | `/work` WORK | Life | Current focus, active Algorithm sessions, project portfolio | 50% | 85% |
 | 5 | `/health` HEALTH | Life | Health hub: labs, fitness, nutrition, metrics, conditions | 40% | 85% |
@@ -89,12 +89,12 @@ These six pages share a pattern: **complete, polished UI with Recharts visualiza
 >
 > Commits (signed): fork `0210215` + `788ea29`; live `8026006` + `b7529f6`. Plan/as-built: `docs/TELOS-IMPLEMENTATION-PLAN.md` (Build status).
 >
-> **Re-scored to ~85% completion / ~98% maturity.** Maturity ~98: the canonical primitive backend (Problems→Mission→Goals←Metrics, Challenges←Strategies→Projects→Work) is built + audited on both trees; short of 100 because Phase 4 (dimensions/velocity, owner, idealState, stranded) and Team/Budget (deliberately skipped — not Miessler-canonical) remain. Completion ~85, not higher, because the user's *real* TELOS source files are still prose without `K#`/`PR#`/KPI sub-fields, so Metrics/Projects render sample/empty until authored — the same "empty data ≠ broken code" pattern this report applies elsewhere. Superseded figures struck below.
+> **Re-scored to ~90% completion / ~99% maturity** (Phase 4 shipped 2026-07-04: 7-granular dimensions incl. HZ-5 reconcile, `computeStranded`, `idealState` — fork `fb93a02`, live `5fdd4d8`). Maturity ~99: the canonical primitive backend AND the computed layer (dimensions/velocity, stranded, ideal-state) are built + cross-vendor audited on both trees; the fork's `summary.ts` analysis engine (pinch/drift/traction) now has real inputs. Short of 100 only for `owner` (no clean identity source — small deferral) and Team/Budget (deliberately skipped — not Miessler-canonical). Completion ~90, not higher, because the user's *real* TELOS files are still prose without `K#`/`PR#`/KPI sub-fields, so Metrics/Projects/velocity render sample/empty until authored — "empty data ≠ broken code." Superseded figures struck below.
 
 - **Goal:** Display the TELOS v7 strategic framework (11 primitives: ideal state, problems, missions, goals, metrics, challenges, strategies, projects, work, team, budget) in column / tree / graph views.
-- **Completion:** **85%** ~~65%~~ — UI-complete AND backend now wired (Phases 1–3); real user source data still sparse.
-- **Maturity:** **98%** ~~90%~~ — canonical primitive backend built + cross-vendor audited on both trees.
-- **Evidence:** `telos/page.tsx` re-exports `telos/_v7/app.tsx` (full impl + supporting files in `_v7/`). Multiple view modes (columns/tree/graph), goal modal, trace modal. Data via `/api/telos/overview` now parses problems/missions/goals/strategies/challenges + `metrics`(array) + `projects`(array w/ nested work) from `USER/TELOS/*` sources (previously returned mostly null). Still null by design/deferral: owner, idealState, dimensions (Phase 4), team, budget (skipped — non-canonical). No stub markers.
+- **Completion:** **90%** ~~85%~~ ~~65%~~ — UI-complete AND backend wired (Phases 1–4); real user source data still sparse.
+- **Maturity:** **99%** ~~98%~~ ~~90%~~ — canonical primitives + computed layer (dimensions/stranded/ideal-state) built + cross-vendor audited on both trees.
+- **Evidence:** `telos/page.tsx` re-exports `telos/_v7/app.tsx` (full impl + supporting files in `_v7/`). Multiple view modes (columns/tree/graph), goal modal, trace modal. Data via `/api/telos/overview` now parses problems/missions/goals/strategies/challenges + `metrics`(array) + `projects`(array w/ nested work) + `dimensions`(7 granular) + `stranded`(orphan graph) + `idealState` from `USER/TELOS/*` sources (previously returned mostly null). Live daemon confirmed serving 5 real dimensions + stranded (2 work / 4 goals / 3 strategies). Still null by design/deferral: owner (no identity source), team, budget (skipped — non-canonical). No stub markers.
 - **Sub-views:** Columns / Tree / Graph view modes; Goal-detail and Trace modals.
 
 ### 3. `/life` — LIFE
