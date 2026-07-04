@@ -572,9 +572,14 @@ export default function NoveltyPage() {
               <p className="text-sm text-muted-foreground max-w-md">
                 Use the{" "}
                 <code className="bg-muted px-1.5 py-0.5 rounded">
-                  CreateNovelty
+                  Ideate
                 </code>{" "}
-                skill to generate ideas.
+                skill to generate ideas. Each completed run projects here
+                automatically; to backfill an existing run, run{" "}
+                <code className="bg-muted px-1.5 py-0.5 rounded">
+                  bun PAI/TOOLS/NoveltyProjector.ts --all
+                </code>
+                .
               </p>
             </div>
           </div>

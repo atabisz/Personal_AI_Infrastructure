@@ -210,6 +210,16 @@ Each run persists to `~/.claude/PAI/MEMORY/WORK/{slug}/ideate/`. See `../SKILL.m
 
 See `../SKILL.md` § "Final Output Format" for the markdown template.
 
+## Pulse Projection (terminal step)
+
+After `final-output.md` is written, project this run into the Pulse "Novelty" dashboard so the Ideate tab reflects it. This is a one-shot, read-only-then-write bridge — it never mutates the run's own artifacts.
+
+```bash
+bun ~/.claude/PAI/TOOLS/NoveltyProjector.ts --slug {slug}
+```
+
+The projector reads `MEMORY/WORK/{slug}/ideate/{config.json,loop-state.json,final-output.md}` and upserts a `NoveltyRun` into `MEMORY/STATE/novelty-state.json`, which `/api/novelty` serves to the dashboard. Safe to re-run (upsert by run id).
+
 ## Execution Log
 
 ```bash

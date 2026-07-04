@@ -52,7 +52,9 @@ export interface ObservabilityConfig {
 
 import { homedir } from "os"
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? homedir()
-const PAI_DIR = join(HOME, ".claude", "PAI")
+// Honor an explicit PAI_DIR override (matches NoveltyProjector.ts and handleUserIndexApi)
+// so a non-default PAI_DIR keeps producer and consumer pointed at the same state files.
+const PAI_DIR = process.env.PAI_DIR ?? join(HOME, ".claude", "PAI")
 const MEMORY_DIR = join(PAI_DIR, "MEMORY")
 
 const WORK_JSON_PATH = join(MEMORY_DIR, "STATE", "work.json")
