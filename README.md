@@ -13,7 +13,7 @@
 [![Stars](https://img.shields.io/github/stars/danielmiessler/LifeOS?style=flat&color=F59E0B)](https://github.com/danielmiessler/LifeOS/stargazers)
 [![License](https://img.shields.io/github/license/danielmiessler/LifeOS?style=flat&color=60A5FA)](./LICENSE)
 
-**[Watch the walkthrough](https://youtu.be/Le0DLrn7ta0)**  ·  **[Releases](Releases/)**  ·  **[Docs](https://docs.ourlifeos.ai)**
+**[Visit the Website](https://ourlifeos.ai)**· **[Watch the walkthrough](https://youtu.be/Le0DLrn7ta0)**  ·  **[Releases](Releases/)**  ·  **[Docs](https://docs.ourlifeos.ai)**
 
 </div>
 
