@@ -73,6 +73,8 @@ Every real assistant does one job: **understand your current state, understand y
 
 This loop is the purpose of the OS. Memory compounds so the DA understands current state better over time. Skills expand so the DA can take more actions to close the gap. Hooks automate so the system runs even when you're not looking at it. The Algorithm is the systematic version of this loop for every task the DA executes.
 
+This loop is not new — it is the direct descendant of **Desired Outcome Management (DOM)**, named in the 2016 [Real Internet of Things](https://example.com/blog/the-real-internet-of-things): users *"define goals, establish improvement models, capture behavioral data, receive ratings on progress, and get algorithmic recommendations for optimization."* Every current-state surface in the dashboard (the Life cluster) is a DOM surface; every dashboard section should therefore relate a current state to an ideal state and surface the next move that closes the gap — not merely display data. When judging any surface, DOM is the frame: *state → ideal → rating → recommendation.*
+
 ---
 
 ## The LifeOS Maturity Model (LifeOS-MM)

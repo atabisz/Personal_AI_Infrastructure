@@ -13,6 +13,37 @@ Every Pulse module is a sub-surface of the Dashboard: real-time observability, v
 
 ---
 
+## Design intent & section mapping
+
+Pulse's sections are not an arbitrary set of tabs — each one is a surface of the **Current State → Ideal State** hill-climb the OS exists to run (see `LifeOsThesis.md` → "The Core Loop" and its DOM lineage). This section records the design intent that governs *which* sections exist and *what "done" means* for each, so the dashboard can be validated against Daniel Miessler's design rather than only against "does it render." The detailed, per-section, sourced reconstruction lives in the validation report `docs/PULSESECTIONREPORT.md`; this is the canonical summary of its frame.
+
+### Two ceilings — "displays data" vs "the DA acts"
+
+Every section has two distinct completion ceilings, and they diverge:
+
+- **Rendered** — the section reads its data source and displays it correctly. This is what a build/completion score measures.
+- **AS3 (the intended endpoint)** — per the [PAI Maturity Model](https://example.com/blog/personal-ai-maturity-model), an AS3 section is one where the DA *proactively acts* on the data ("scanning for opportunities, threats, better deals"), not just shows it. `/health` at AS3 is not "shows labs" — it is "the DA flags a concerning trend and proposes an action."
+
+Most sections today are AS1–AS2 *displays*; the design target is AS3 *agency*. A validator should track both ceilings — "renders correctly" and "reaches intended maturity" are different bars, and the gap between them is the real roadmap.
+
+### Daniel's live dashboard (Daemon) as external referent
+
+The strongest evidence of concrete section intent is Daniel's own shipped public dashboard, **Daemon** ([daemon.danielmiessler.com](https://example.com)) — a real-time operational dashboard with 17 sections. It doubles as a *published personal API* (humans read the site, AI reads an MCP server, daemons talk daemon-to-daemon), so its section list is also the public-broadcast contract. Mapping Daemon's known sections against Pulse surfaces where Pulse matches, diverges, or has a genuine gap:
+
+| Daemon section (Daniel's live) | Pulse equivalent | Relationship |
+|---|---|---|
+| Mission / TELOS Framework | `/telos` | Match — most-aligned |
+| Projects | `/telos` (PR#) + `/work` | Split (strategic vs operational) |
+| Books / Movies / Predictions / Preferences / Routine | folded into `/life` | **Divergence** — Daniel promotes taste/`shape` biography files to first-class sections; Pulse buries them under `/life` |
+| **Offerings** | *(none)* | **Genuine gap — DA-to-DA** |
+| **Requests** | *(none)* | **Genuine gap — DA-to-DA** |
+
+**Two design signals from this mapping:**
+1. **The DA-to-DA layer (Offerings / Requests) is entirely absent from Pulse.** Daemon's `Offerings`/`Requests` are the supply/demand surfaces of an "open protocol for AI daemons to offer and request from each other" — the outward, personal-API half of the *Real Internet of Things* vision. Pulse implements the *inward* Life OS but not the *outward* daemon-to-daemon exchange. Score this as "not started," not "N/A."
+2. **Pulse under-surfaces the biography (`shape`/`taste`) files** (Predictions, Routine/`Rhythms`, Books, Movies, Preferences) that Daniel renders as first-class sections. Neither approach is wrong, but the divergence is a deliberate design choice worth recording. See `LifeOsSchema.md` for the 7-category/4-kind render contract those files use, and `LifeOsThesis.md` → "Respark" for the play/creativity pillar that is likewise intended-but-unbuilt as a Pulse surface.
+
+---
+
 ## Subsystems
 
 Each subsystem runs in its own crash-isolated loop within the single Pulse process. If one module crashes (e.g., Telegram loses connection), all other modules continue running uninterrupted.
