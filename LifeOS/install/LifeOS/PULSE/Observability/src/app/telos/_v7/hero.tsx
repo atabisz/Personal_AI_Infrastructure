@@ -263,7 +263,7 @@ export function Hero({ telos, tone, showIds, onTrace, openFile, isPersonalized }
       {hasIdealState && (
         <div className="ideal-head">
           <div className="ideal-head-l">
-            <span className="ideal-label">Current vs Ideal</span>
+            <span className="ideal-label" title="How fully each life dimension is articulated in your IDEAL_STATE files — a setup/completeness measure, not how close you are to achieving the ideal.">Dimension setup</span>
             <span className="ideal-horizon">{idealState.horizon}</span>
           </div>
           <span className="ideal-note">{idealState.note}</span>

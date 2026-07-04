@@ -113,21 +113,24 @@ function buildHeadline(telos: Telos, voice: OwnerVoice): string {
 
   if (dimensions.length === 0) {
     return idealState.horizon
-      ? `${sCap} ${voice.verb("be")} working toward an ideal state ${idealState.horizon} — dimensions not yet articulated.`
-      : `${sCap} ${voice.verb("have")} not yet defined the ideal state across life dimensions.`;
+      ? `${sCap} ${voice.verb("have")} an ideal-state horizon of ${idealState.horizon} — dimensions not yet articulated.`
+      : `${sCap} ${voice.verb("have")} not yet articulated the ideal state across life dimensions.`;
   }
 
+  // NB: dimension `cur` is a "setup / articulation %" (how fully the IDEAL_STATE
+  // file is written), NOT how close the principal is to achieving the ideal —
+  // worded as articulation to match the ring label ("Dimension setup").
   const avg = avgCur(dimensions);
   const sortedByGap = [...dimensions].sort((a, b) => gap(a) - gap(b));
-  const closest = sortedByGap[0]!;
-  const furthest = sortedByGap[sortedByGap.length - 1]!;
-  const horizonClause = idealState.horizon ? ` toward the ${idealState.horizon} ideal state` : "";
+  const mostArticulated = sortedByGap[0]!;
+  const leastArticulated = sortedByGap[sortedByGap.length - 1]!;
+  const horizonClause = idealState.horizon ? ` (horizon ${idealState.horizon})` : "";
 
-  if (closest.id === furthest.id) {
-    return `${sCap} ${voice.verb("sit")} at ${fmtPct(avg)} of ${voice.possessive} ideal state on average${horizonClause}.`;
+  if (mostArticulated.id === leastArticulated.id) {
+    return `${voice.possessive} ideal state is ${fmtPct(avg)} articulated on average${horizonClause}.`;
   }
 
-  return `${sCap} ${voice.verb("sit")} at ${fmtPct(avg)} of ${voice.possessive} ideal state on average${horizonClause}. ${cap(lower(closest.label))} is the closest at ${fmtPct(closest.cur)} of ${fmtPct(closest.ideal)}; ${lower(furthest.label)} is the furthest at ${fmtPct(furthest.cur)} of ${fmtPct(furthest.ideal)}.`;
+  return `${voice.possessive} ideal state is ${fmtPct(avg)} articulated on average${horizonClause}. ${cap(lower(mostArticulated.label))} is the most fully set up at ${fmtPct(mostArticulated.cur)}; ${lower(leastArticulated.label)} the least at ${fmtPct(leastArticulated.cur)}.`;
 }
 
 function cap(s: string): string {
@@ -140,10 +143,12 @@ function buildPosition(telos: Telos, voice: OwnerVoice): string {
   const sortedByGap = [...dimensions].sort((a, b) => gap(b) - gap(a));
   const widest = sortedByGap.slice(0, Math.min(2, sortedByGap.length)).filter((d) => gap(d) > 5);
   if (widest.length === 0) {
-    return `Every dimension ${voice.verb("sit")} within 5 points of ideal — the position itself is healthy.`;
+    return `Every tracked dimension is fully articulated — setup is complete.`;
   }
-  const parts = widest.map((d) => `${lower(d.label)} ${fmtPct(gap(d))} below ideal`);
-  return `The biggest gaps to close: ${joinList(parts)}.`;
+  // "gap" = articulation headroom (100 − setup%), how much of the ideal is still
+  // to be written — NOT a life-achievement gap.
+  const parts = widest.map((d) => `${lower(d.label)} (${fmtPct(gap(d))} left to articulate)`);
+  return `Least fully set up: ${joinList(parts)}.`;
 }
 
 function buildTraction(telos: Telos, voice: OwnerVoice): string {

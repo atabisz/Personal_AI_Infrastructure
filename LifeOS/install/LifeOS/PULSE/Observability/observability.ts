@@ -2797,12 +2797,15 @@ function buildDimensionsFromIdealState(): Array<{ id: string; label: string; cur
   ]
 
   return DIMS
-    .filter((d) => state[d.id] !== undefined || existsSync(join(idealDir, d.file)))
+    // Only surface dimensions with a REAL numeric pct. A null pct = "not tracked"
+    // (opt-out / north-star / no IDEAL file) and must NOT render as a 0%/"failing"
+    // ring. (Was: coerce null→0, which painted deliberate opt-outs as 0%.)
+    .filter((d) => typeof state[d.id]?.pct === "number")
     .map((d) => ({
       id: d.id,
       label: d.label,
       color: d.color,
-      cur: typeof state[d.id]?.pct === "number" ? Math.round(state[d.id]!.pct!) : 0,
+      cur: Math.round(state[d.id]!.pct!),
       ideal: 100,
       velo: typeof state[d.id]?.velo === "number" ? state[d.id]!.velo! : 0,
     }))
