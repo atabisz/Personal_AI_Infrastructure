@@ -78,7 +78,19 @@ convention: pai-freshness-v1
 
 ## Projects (what you're working on to pursue the strategies)
 
-- **PR0:** (sample) A current project, with its status.
+<!-- Each PR# is a project: Status (green|amber|red), References (the S# strategy
+     it implements), Dims (comma-separated dimension tags, e.g. creative, money),
+     and nested Work rows. Work rows are pipe-delimited:
+     `W#: title | status: green|amber|red | eta: <when> | owner: <who>`
+     (avoid a literal "|" inside a Work title — it is the field delimiter). -->
+
+- **PR0:** (sample) A current project pursuing a strategy.
+  - **Status:** amber
+  - **References:** S0
+  - **Dims:** creative
+  - **Work:**
+    - **W0:** (sample) First task | status: green | eta: 2d | owner: You
+    - **W1:** (sample) Second task | status: amber | eta: 1w | owner: You
 
 ## Narratives (talking points for talks, panels, posts)
 

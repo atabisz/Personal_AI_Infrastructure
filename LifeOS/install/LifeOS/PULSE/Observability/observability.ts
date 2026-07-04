@@ -2528,6 +2528,9 @@ function parseBoolField(raw: string | null): boolean {
 function normalizeGoalNumber(s: string): number | null {
   if (!s) return null
   let t = s.trim().replace(/[$,%\s]/g, "")
+  // Reject date-shaped tokens (2026-06-13, 2026/06, bare year) BEFORE parseFloat,
+  // which would otherwise read the leading year as a bogus number → nonsense pct.
+  if (/\d{4}[-/]\d{1,2}/.test(t) || /^\d{4}$/.test(t) && /^(19|20)\d\d$/.test(t)) return null
   const hm = t.match(/^(\d+)h(\d+)$/i)
   if (hm) return Number(hm[1]) * 60 + Number(hm[2])
   const k = t.match(/^(\d+(?:\.\d+)?)k$/i)
@@ -2588,6 +2591,98 @@ function parseMetrics(raw: string): Array<{
         feeds: refsByPrefix(refs, "G"),
         color: "--azure",
       }
+    })
+}
+
+// Normalize a status token to the client's green|amber|red enum. Unknown /
+// absent → "amber" ("needs a look") rather than falsely claiming "green".
+function normStatus(s: string | null | undefined): "green" | "amber" | "red" {
+  const t = (s ?? "").toLowerCase().trim()
+  return t === "green" || t === "amber" || t === "red" ? t : "amber"
+}
+
+// Parse a `## Projects` section into Project primitives (PR# IDs), each with
+// nested Work items (W#). A dedicated block-splitter (NOT parseIdEntries, which
+// space-joins bodies and would flatten the nested Work rows) keeps each
+// project's body lines intact so W# rows survive. Project fields come from
+// labeled sub-fields: **Status:**, **Strategy:** (or an S# in **References:**),
+// **Dims:** (comma list — dims are not ID-prefixed so refsByPrefix can't bin
+// them). Work rows are pipe-delimited: `W0: title | status: x | eta: y | owner: z`.
+// No Pass-3 prose fallback exists here, so a prose-only ## Projects yields [].
+function parseProjects(raw: string): Array<{
+  id: string
+  title: string
+  strategy: string
+  dims: string[]
+  status: "green" | "amber" | "red"
+  work: Array<{ id: string; title: string; strategy: string; eta: string; status: "green" | "amber" | "red"; owner: string }>
+}> {
+  if (!raw) return []
+  const lines = raw.split("\n")
+  type Blk = { id: string; title: string; body: string[] }
+  const blocks: Blk[] = []
+  let cur: Blk | null = null
+  const startRe = /^(?:#{2,4}\s+|-\s+)\*?\*?(PR\d+[a-z]?)\*?\*?\s*:\s*(.+?)\s*$/i
+  for (const line of lines) {
+    const m = line.match(startRe)
+    if (m) {
+      if (cur) blocks.push(cur)
+      cur = { id: m[1].toUpperCase(), title: cleanInlineMarkdown(m[2]), body: [] }
+    } else if (cur) {
+      cur.body.push(line)
+    }
+  }
+  if (cur) blocks.push(cur)
+
+  // Split a Work row's payload into title + trailing `key: value` fields. Only
+  // pipe-segments that look like `<knownkey>: value` are treated as fields; any
+  // leading segments (incl. ones containing a literal "|") stay part of the
+  // title, so a pipe inside a title isn't silently truncated (Cato F2).
+  const WORK_KEYS = new Set(["status", "eta", "owner", "strategy"])
+  const splitWorkRow = (payload: string): { title: string; fields: Record<string, string> } => {
+    const segs = payload.split("|").map((s) => s.trim())
+    const fields: Record<string, string> = {}
+    const titleSegs: string[] = []
+    let inFields = false
+    for (const seg of segs) {
+      const idx = seg.indexOf(":")
+      const key = idx > 0 ? seg.slice(0, idx).trim().toLowerCase() : ""
+      if (key && WORK_KEYS.has(key)) {
+        inFields = true
+        fields[key] = seg.slice(idx + 1).trim()
+      } else if (!inFields) {
+        titleSegs.push(seg)
+      }
+    }
+    return { title: titleSegs.join(" | ").trim(), fields }
+  }
+
+  const workRe = /^\s*[-*]?\s*\*?\*?(W\d+[a-z]?)\*?\*?\s*:\s*(.+?)\s*$/i
+  const seenProj = new Set<string>()
+  return blocks
+    .filter((b) => { if (seenProj.has(b.id)) return false; seenProj.add(b.id); return true }) // dedupe by id (Cato F4)
+    .map((b) => {
+      const bodyStr = b.body.join("\n")
+      const status = normStatus(pickLabeledValue(bodyStr, "Status"))
+      const refs = mergeRefs([], pickRefs(bodyStr))
+      const strategy = refsByPrefix(refs, "S")[0] ?? pickLabeledValue(bodyStr, "Strategy") ?? ""
+      const dimsRaw = pickLabeledValue(bodyStr, "Dims") ?? ""
+      const dims = dimsRaw ? dimsRaw.split(",").map((s) => s.trim()).filter(Boolean) : []
+      const work = b.body
+        .filter((l) => workRe.test(l))
+        .map((l) => {
+          const wm = l.match(workRe)!
+          const { title, fields } = splitWorkRow(wm[2])
+          return {
+            id: wm[1].toUpperCase(),
+            title: cleanInlineMarkdown(title),
+            strategy: fields.strategy ?? strategy,
+            eta: fields.eta ?? "",
+            status: normStatus(fields.status),
+            owner: fields.owner ?? "",
+          }
+        })
+      return { id: b.id, title: b.title, strategy, dims, status, work }
     })
 }
 
@@ -3210,6 +3305,7 @@ async function handleTelosOverview(): Promise<Response> {
     //   - Challenge references: G* → blocks[]
     //   - Metric references: G* → feeds[]
     const metricsRaw = sectionOrFile("metrics", "METRICS.md")
+    const projectsRaw = sectionOrFile("projects", "PROJECTS.md")
 
     const goalEntries = parseIdEntries(goalsRaw, "G")
     const goals = goalEntries.length > 0
@@ -3294,6 +3390,7 @@ async function handleTelosOverview(): Promise<Response> {
       }
     })
     const metrics = parseMetrics(metricsRaw)
+    const projects = parseProjects(projectsRaw)
 
     const dimensions = buildDimensionsFromIdealState()
     const snapshot = buildSnapshotFromCurrentState()
@@ -3320,17 +3417,17 @@ async function handleTelosOverview(): Promise<Response> {
     // content is the signal — no marker file. The client uses this to decide
     // whether to fall back to the showcase fixture (fresh installs only) or
     // render empty-states for unpopulated sections (personalized installs).
-    // HZ-1: metrics counts toward personalization so a metrics-only install
-    // (authored ## Metrics, none of the core five) is NOT mistaken for a fresh
-    // install and does NOT fall through to the showcase fixture. (Projects will
-    // join this list in Phase 3 when it stops being a literal null.)
+    // HZ-1: metrics/projects count toward personalization so an install that
+    // authored only ## Metrics or ## Projects (none of the core five) is NOT
+    // mistaken for a fresh install and does NOT fall through to the fixture.
     const isPersonalized =
       missionsFull.length > 0 ||
       goals.length > 0 ||
       problems.length > 0 ||
       strategies.length > 0 ||
       challenges.length > 0 ||
-      metrics.length > 0
+      metrics.length > 0 ||
+      projects.length > 0
 
     return Response.json({
       meta: { isPersonalized },
@@ -3344,7 +3441,7 @@ async function handleTelosOverview(): Promise<Response> {
       metrics,
       challenges,
       strategies,
-      projects: null,
+      projects: projects.length > 0 ? projects : null,
       team: null,
       budget: null,
       recommendations: null,
