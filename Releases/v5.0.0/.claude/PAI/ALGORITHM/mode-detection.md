@@ -1,6 +1,8 @@
-# Mode & Parameter Detection (Algorithm v6.2.0)
+# Mode & Parameter Detection (Algorithm)
 
 Loaded by OBSERVE on demand when ideate, optimize, fast-path, or effort override modes are detected.
+
+> **Version note:** the ideate / optimize / fast-path / effort-override detection below is current. The *effort-tier* selection it originally owned is now driven by the v6.3.0 Sonnet classifier (`PromptProcessing.hook.ts` at UserPromptSubmit → `MODE`/`TIER`/`REASON`/`SOURCE`), consumed at OBSERVE per the current spec (`PAI/ALGORITHM/LATEST` → the versioned file) under "Set effort level (classifier-driven)". Read the tier-selection steps here as the pre-classifier fallback path.
 
 ---
 
