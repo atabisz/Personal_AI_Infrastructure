@@ -59,6 +59,17 @@ const NEVER_AUTONOMOUS = ["core.name", "core.full_name", "voice", "relationship.
 // Anti-sycophancy floor: these traits define the peer/anti-sycophant identity
 // and may not drift DOWN autonomously (they may only be raised, still within bound).
 const ANTI_SYCOPHANCY_FLOOR_TRAITS = ["directness", "precision"]
+// Trait vocabulary the growth engine is allowed to DRIFT. The LLM may only nudge
+// EXISTING, known traits — it may never INVENT a new personality dimension
+// autonomously (new traits are principal-authored via /interview, same spirit as
+// NEVER_AUTONOMOUS). This closes a Cato-found class: an unknown key like
+// "constructor"/"__proto__"/"verbosity" bypassed the `traits[name] ?? 50` default
+// — a prototype-chain name resolves to an inherited function (not nullish), so the
+// clamp math produced NaN and corrupted DA_IDENTITY.yaml (Cato audit 2026-07-04).
+const DRIFTABLE_TRAITS = [
+  "enthusiasm", "energy", "expressiveness", "resilience", "composure", "optimism",
+  "warmth", "formality", "directness", "precision", "curiosity", "playfulness",
+]
 
 interface Opinion {
   topic: string
@@ -154,11 +165,21 @@ function applyTraitDrift(idPath: string, proposed: Record<string, number>, now: 
   }
 
   for (const [name, value] of Object.entries(proposed)) {
+    // Vocabulary allowlist: only drift KNOWN traits. Rejects LLM-invented keys
+    // (verbosity, …) AND prototype-chain names (constructor/__proto__/toString)
+    // whose `traits[name] ?? 50` would resolve to an inherited function → NaN →
+    // corrupt identity yaml (Cato audit 2026-07-04). New dimensions are
+    // principal-authored, never autonomous.
+    if (!DRIFTABLE_TRAITS.includes(name)) continue
     // N3: reject non-finite proposals — trait_drift is LLM JSON, not trusted.
     // A non-number (e.g. {}) would clamp to NaN and corrupt the identity yaml.
     if (typeof value !== "number" || !Number.isFinite(value)) continue
-    const current = traits[name] ?? 50
-    const monthBase = baselineValues[name] ?? current
+    // Own-property lookup + finite-guard on the CURRENT value too (belt-and-braces
+    // now that the allowlist already excludes prototype names).
+    const rawCurrent = Object.prototype.hasOwnProperty.call(traits, name) ? traits[name] : 50
+    const current = Number.isFinite(rawCurrent as number) ? (rawCurrent as number) : 50
+    const rawBase = Object.prototype.hasOwnProperty.call(baselineValues, name) ? baselineValues[name] : current
+    const monthBase = Number.isFinite(rawBase as number) ? (rawBase as number) : current
     // Clamp to ≤MAX from BOTH the current value (per-run) AND the monthly baseline
     // (per-month cumulative) — the tighter of the two bounds wins.
     const lo = Math.max(current - MAX_TRAIT_DRIFT_PER_MONTH, monthBase - MAX_TRAIT_DRIFT_PER_MONTH)
