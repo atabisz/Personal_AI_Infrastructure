@@ -77,6 +77,34 @@ const REWRITE_RULES: Rule[] = [
   { re: /\bGeneratePaiState\b/g, replace: "GenerateLifeosState", label: "symbol: GeneratePaiState" },
   { re: /\bPaiUpgrade\b/g, replace: "LifeosUpgrade", label: "symbol: PaiUpgrade" },
   { re: /\bpaiUserDir\b/g, replace: "lifeosUserDir", label: "symbol: paiUserDir" },
+  // ── Class 2 + Class 5 code identifiers (NEW). Each rename is VERIFIED against
+  // origin's live install/LIFEOS content — upstream renamed these exact tokens.
+  // Order: longest/derivative-first so a base name doesn't eat a suffix.
+  // getPaiDir -> getLifeosDir (hooks/lib/paths.ts:43). NOTE paiPath() is KEPT by upstream (see PRESERVE).
+  { re: /\bgetPaiDir\b/g, replace: "getLifeosDir", label: "symbol: getPaiDir" },
+  { re: /\bbuildPaiContextBlock\b/g, replace: "buildLifeosContextBlock", label: "symbol: buildPaiContextBlock" },
+  // PAIAgentAdapter (+Options derivative first)
+  { re: /\bPAIAgentAdapterOptions\b/g, replace: "LifeosAgentAdapterOptions", label: "symbol: PAIAgentAdapterOptions" },
+  { re: /\bPAIAgentAdapter\b/g, replace: "LifeosAgentAdapter", label: "symbol: PAIAgentAdapter" },
+  // PAIEvent family (Row/Events derivatives first, then the hook, then the base type)
+  { re: /\bPAIEventRow\b/g, replace: "LifeosEventRow", label: "symbol: PAIEventRow" },
+  { re: /\busePAIEvents\b/g, replace: "useLifeosEvents", label: "symbol: usePAIEvents" },
+  { re: /\bPAIEvents\b/g, replace: "LifeosEvents", label: "symbol: PAIEvents" },
+  { re: /\bPAIEvent\b/g, replace: "LifeosEvent", label: "symbol: PAIEvent" },
+  // Pai* interfaces / React identifiers (derivatives first)
+  { re: /\bPaiLogoProps\b/g, replace: "LifeosLogoProps", label: "symbol: PaiLogoProps" },
+  { re: /\bPaiLogo\b/g, replace: "LifeosLogo", label: "symbol: PaiLogo" },
+  { re: /\bPaiPageInner\b/g, replace: "LifeosPageInner", label: "symbol: PaiPageInner" },
+  { re: /\bPaiPage\b/g, replace: "LifeosPage", label: "symbol: PaiPage" },
+  { re: /\bPaiLayout\b/g, replace: "LifeosLayout", label: "symbol: PaiLayout" },
+  { re: /\bPaiPrincipal\b/g, replace: "LifeosPrincipal", label: "symbol: PaiPrincipal" },
+  { re: /\bPaiVoiceSettings\b/g, replace: "LifeosVoiceSettings", label: "symbol: PaiVoiceSettings" },
+  { re: /\bPaiIntegrations\b/g, replace: "LifeosIntegrations", label: "symbol: PaiIntegrations" },
+  { re: /\bPaiPaths\b/g, replace: "LifeosPaths", label: "symbol: PaiPaths" },
+  { re: /\bPaiState\b/g, replace: "LifeosState", label: "symbol: PaiState" },
+  { re: /\bPaiDa\b/g, replace: "LifeosDa", label: "symbol: PaiDa" },
+  // PAIConfig (all-caps variant, distinct from PaiConfig above)
+  { re: /\bPAIConfig\b/g, replace: "LifeosConfig", label: "symbol: PAIConfig" },
 ];
 
 /**
@@ -88,6 +116,11 @@ const PRESERVE_RES: { re: RegExp; why: string }[] = [
   { re: /pai-[a-z0-9-]/, why: "asset/kebab id (pai-logo, pai-icon) — must not rename" },
   // Substrings where 'pai'/'PAI' is not the project token.
   { re: /Pairwise|pairwise|repair|impair|despair|paint|Sinai|campaign/, why: "substring — not the PAI token" },
+  // Code identifiers upstream KEPT (verified live in origin install/LIFEOS) — must NOT rename.
+  { re: /\bpaiPath\b/, why: "kept by upstream (hooks/lib/paths.ts exports paiPath)" },
+  { re: /PAIColors|PAITheme|PAITypography|PAIAnimation/, why: "kept by upstream (Remotion Theme.ts constants)" },
+  { re: /PAISYSTEMARCHITECTURE|PAISystemArchitecture|PAISECURITYSYSTEM|PAISYSTEMUPDATES|PAIAGENTSYSTEM|PAIMM/, why: "kept by upstream (doc heading/anchor constants)" },
+  { re: /PAIIntegrityCheck/, why: "kept by upstream (doc/hook constant)" },
 ];
 
 /**
@@ -193,6 +226,55 @@ function runSelfTest(): number {
       name: "clearPaiConfigCache not eaten by generic PaiConfig rule",
       in: "export function clearPaiConfigCache()",
       wantText: "export function clearLifeosConfigCache()",
+      wantRewrites: 1,
+      wantFlags: 0,
+    },
+    {
+      name: "class2/5: PAIEvent family + hook renamed",
+      in: "import { usePAIEvents, type PAIEvent } from '@/hooks/useLifeosEvents'",
+      wantText: "import { useLifeosEvents, type LifeosEvent } from '@/hooks/useLifeosEvents'",
+      wantRewrites: 2,
+      wantFlags: 0,
+    },
+    {
+      name: "class2/5: PAIEventRow derivative before base",
+      in: "function PAIEventRow({ event }: { event: PAIEvent })",
+      wantText: "function LifeosEventRow({ event }: { event: LifeosEvent })",
+      wantRewrites: 2,
+      wantFlags: 0,
+    },
+    {
+      name: "class5: getPaiDir renamed, paiPath KEPT",
+      in: "import { getPaiDir, paiPath } from './paths'",
+      wantText: "import { getLifeosDir, paiPath } from './paths'",
+      wantRewrites: 1,
+      wantFlags: 0,
+    },
+    {
+      name: "class5: Pai interfaces renamed",
+      in: "interface PaiPrincipal {} interface PaiVoiceSettings {}",
+      wantText: "interface LifeosPrincipal {} interface LifeosVoiceSettings {}",
+      wantRewrites: 2,
+      wantFlags: 0,
+    },
+    {
+      name: "keep: PAITheme/PAIColors NOT renamed, no flag",
+      in: "import { PAITheme, PAIColors } from './Theme'",
+      wantText: "import { PAITheme, PAIColors } from './Theme'",
+      wantRewrites: 0,
+      wantFlags: 0,
+    },
+    {
+      name: "keep: PAISYSTEMARCHITECTURE doc constant NOT renamed, no flag",
+      in: "const wiki = PAISYSTEMARCHITECTURE",
+      wantText: "const wiki = PAISYSTEMARCHITECTURE",
+      wantRewrites: 0,
+      wantFlags: 0,
+    },
+    {
+      name: "keep: PAIAgentAdapter IS renamed (class 5), but PAIAGENTSYSTEM doc constant kept",
+      in: "PAIAgentAdapter uses PAIAGENTSYSTEM",
+      wantText: "LifeosAgentAdapter uses PAIAGENTSYSTEM",
       wantRewrites: 1,
       wantFlags: 0,
     },

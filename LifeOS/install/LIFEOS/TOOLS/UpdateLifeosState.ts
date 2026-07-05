@@ -63,7 +63,7 @@ interface DimensionState {
 // differs, so a formula change reads flat rather than a one-time artifact velo.
 const SCORER_VERSION = "substance-v2-exclude-notscored";
 
-interface PaiState {
+interface LifeosState {
   generated_at: string;
   scorer_version: string;
   dimensions: Record<DimensionId, DimensionState>;
@@ -175,7 +175,7 @@ function readPriorPcts(): Record<string, number> {
   return out;
 }
 
-function build(): PaiState {
+function build(): LifeosState {
   // velo = change in pct since the PREVIOUS run. Null until a prior numeric pct
   // exists AND differs from now — so a first run, an unmeasured dim, or an
   // unchanged dim all read "flat/not tracked", never a fabricated trend.

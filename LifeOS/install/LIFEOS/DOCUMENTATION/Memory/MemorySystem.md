@@ -144,7 +144,7 @@ When all three hold, the next Stop hook spawns the reviewer subprocess. New User
 
 ### Per-turn retrieval
 
-`buildPaiContextBlock(query)` in `LIFEOS/PULSE/modules/telegram.ts` calls `getRelevantContext(query)` (in `MemoryRetriever.ts`); the BM25 top-K (default 5, score threshold 0.20) renders as a `## RELEVANT MEMORY` block injected after the hot-layer memory files and before `PRINCIPAL_TELOS`. Below-threshold returns empty (no header noise). Cache TTL 60s by query-hash. Graph traversal (`KnowledgeGraph.ts`) stays available as a separate explicit call — not on the hot path.
+`buildLifeosContextBlock(query)` in `LIFEOS/PULSE/modules/telegram.ts` calls `getRelevantContext(query)` (in `MemoryRetriever.ts`); the BM25 top-K (default 5, score threshold 0.20) renders as a `## RELEVANT MEMORY` block injected after the hot-layer memory files and before `PRINCIPAL_TELOS`. Below-threshold returns empty (no header noise). Cache TTL 60s by query-hash. Graph traversal (`KnowledgeGraph.ts`) stays available as a separate explicit call — not on the hot path.
 
 ### Observability
 

@@ -32,7 +32,7 @@ function expandHome(p: string): string {
 
 // ─────────── Types ───────────
 
-export interface PaiPrincipal {
+export interface LifeosPrincipal {
   name: string;
   pronunciation?: string;
   timezone: string;
@@ -40,7 +40,7 @@ export interface PaiPrincipal {
   voiceCloneId?: string;
 }
 
-export interface PaiVoiceSettings {
+export interface LifeosVoiceSettings {
   voiceId: string;
   voiceName?: string;
   stability?: number;
@@ -51,35 +51,35 @@ export interface PaiVoiceSettings {
   volume?: number;
 }
 
-export interface PaiDa {
+export interface LifeosDa {
   name: string;
   fullName?: string;
   displayName?: string;
   color?: string;
   voices: {
-    main: PaiVoiceSettings;
-    algorithm?: PaiVoiceSettings;
+    main: LifeosVoiceSettings;
+    algorithm?: LifeosVoiceSettings;
   };
 }
 
-export interface PaiIntegrations {
+export interface LifeosIntegrations {
   google?: { credentialsFile?: string };
   cloudflare?: { accountId?: string; tokenEnvVar?: string };
   telegram?: { allowlist?: number[] };
   [key: string]: unknown;
 }
 
-export interface PaiPaths {
+export interface LifeosPaths {
   userDir: string;
   memoryDir: string;
   projectsDir: string;
 }
 
 export interface LifeosConfig {
-  principal: PaiPrincipal;
-  da: PaiDa;
-  integrations: PaiIntegrations;
-  paths: PaiPaths;
+  principal: LifeosPrincipal;
+  da: LifeosDa;
+  integrations: LifeosIntegrations;
+  paths: LifeosPaths;
 }
 
 // ─────────── Resolution ───────────
@@ -200,7 +200,7 @@ function validateAndNormalize(raw: unknown, path: string): LifeosConfig {
   };
 }
 
-function normalizeVoice(v: any): PaiVoiceSettings {
+function normalizeVoice(v: any): LifeosVoiceSettings {
   return {
     voiceId: v.voice_id ?? v.voiceId,
     voiceName: v.voice_name ?? v.voiceName,

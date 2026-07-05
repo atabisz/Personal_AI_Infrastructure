@@ -54,10 +54,10 @@ Per-source counts are configured inline in `Pulse/Observability/observability.ts
 
 ## Event Format
 
-All events conform to the `PAIEvent` interface:
+All events conform to the `LifeosEvent` interface:
 
 ```typescript
-interface PAIEvent {
+interface LifeosEvent {
   timestamp: string;     // ISO-8601 with timezone
   session_id: string;    // Claude Code session ID
   source: string;        // "tool-activity" | "tool-failure" | "voice" | "subagent"

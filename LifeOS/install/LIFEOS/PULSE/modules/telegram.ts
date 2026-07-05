@@ -196,7 +196,7 @@ function formatMemoryBlock(title: string, r: MemoryReadResult): string {
  * its own try/catch so a missing source degrades to a placeholder rather than
  * blowing up the whole turn.
  */
-export async function buildPaiContextBlock(query?: string): Promise<string> {
+export async function buildLifeosContextBlock(query?: string): Promise<string> {
   const { stat } = await import("fs/promises")
 
   // Cheap mtime probe to decide if the cache is still valid. Both the four
@@ -803,7 +803,7 @@ export async function startTelegram(config: TelegramConfig): Promise<void> {
       // Build per-turn LifeOS memory context — who {{PRINCIPAL_NAME}} is, who {{DA_NAME}} is, what
       // {{PRINCIPAL_NAME}}'s goals are, what's in flight today, AND any relevant prior
       // memory pulled by BM25 against the current message.
-      const contextBlock = await buildPaiContextBlock(sanitized)
+      const contextBlock = await buildLifeosContextBlock(sanitized)
 
       // Build prompt with conversation history context, scoped to the current
       // thread only. After an idle reset, threadStartedAt is "now" and this
