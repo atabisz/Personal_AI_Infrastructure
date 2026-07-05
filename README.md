@@ -8,10 +8,32 @@
 
 **The AI-Powered Life Operating System**
 
-[![Release](https://img.shields.io/github/v/release/danielmiessler/LifeOS?style=flat&color=8B5CF6)](Releases/v6.0.0/)
-[![Algorithm](https://img.shields.io/badge/Algorithm-v6.23.0-D97706?style=flat)](Releases/v6.0.0/README.md)
-[![Stars](https://img.shields.io/github/stars/danielmiessler/LifeOS?style=flat&color=F59E0B)](https://github.com/danielmiessler/LifeOS/stargazers)
-[![License](https://img.shields.io/github/license/danielmiessler/LifeOS?style=flat&color=60A5FA)](./LICENSE)
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&size=24&pause=1000&color=8B5CF6&center=true&vCenter=true&width=600&lines=Your+Life+Operating+System;Current+State+%E2%86%92+Ideal+State;Open+source.+Free.+Forever.)](https://github.com/danielmiessler/LifeOS)
+
+<!-- Social -->
+![Stars](https://img.shields.io/github/stars/danielmiessler/LifeOS?style=social)
+![Forks](https://img.shields.io/github/forks/danielmiessler/LifeOS?style=social)
+![Watchers](https://img.shields.io/github/watchers/danielmiessler/LifeOS?style=social)
+
+<!-- Status -->
+![Release](https://img.shields.io/github/v/release/danielmiessler/LifeOS?style=flat&logo=github&color=8B5CF6)
+![Last Commit](https://img.shields.io/github/last-commit/danielmiessler/LifeOS?style=flat&logo=git&color=22C55E)
+![Open Issues](https://img.shields.io/github/issues/danielmiessler/LifeOS?style=flat&logo=github&color=F97316)
+![Open PRs](https://img.shields.io/github/issues-pr/danielmiessler/LifeOS?style=flat&logo=githubaccessories&color=EC4899)
+![License](https://img.shields.io/github/license/danielmiessler/LifeOS?style=flat&color=60A5FA)
+
+<!-- Content -->
+[![Get Started](https://img.shields.io/badge/🚀_Get_Started-Install-22C55E?style=flat)](#install)
+[![Release](https://img.shields.io/badge/Release-v6.0.5-8B5CF6?style=flat)](Releases/v6.0.5/)
+[![Algorithm](https://img.shields.io/badge/Algorithm-v6.24.0-D97706?style=flat)](Releases/v6.0.5/README.md)
+[![Pulse](https://img.shields.io/badge/Pulse-included-3B82F6?style=flat)](https://ourlifeos.ai)
+[![Contributors](https://img.shields.io/github/contributors/danielmiessler/LifeOS?style=flat&logo=githubsponsors&logoColor=white&label=Contributors&color=EC4899)](https://github.com/danielmiessler/LifeOS/graphs/contributors)
+
+<!-- Tech Stack -->
+[![Built with Claude](https://img.shields.io/badge/Built_with-Claude-D4A574?style=flat&logo=anthropic&logoColor=white)](https://claude.ai)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bun](https://img.shields.io/badge/Bun-000000?style=flat&logo=bun&logoColor=white)](https://bun.sh)
+[![Community](https://img.shields.io/badge/Community-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/danielmiessler)
 
 **[Visit the Website](https://ourlifeos.ai)** · **[Watch the walkthrough](https://youtu.be/Le0DLrn7ta0)**  ·  **[Releases](Releases/)**  ·  **[Docs](https://docs.ourlifeos.ai)**
 
