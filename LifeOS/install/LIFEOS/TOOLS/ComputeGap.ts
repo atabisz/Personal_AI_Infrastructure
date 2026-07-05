@@ -78,28 +78,85 @@ function coerceScalar(v: unknown): string | number | null {
   return null;
 }
 
-// Validate a single untrusted model-produced entry into a GapEntry, or null to drop.
+// Return the first present, non-empty value among a set of candidate keys.
+// Haiku-tier models reason well but do NOT reliably obey a strict key schema —
+// they emit natural variants (gap_narrative, priority, current_status, ideal_row).
+// Rather than fight that with ever-longer prompts, accept the aliases here.
+function pick(r: Record<string, unknown>, keys: string[]): unknown {
+  for (const k of keys) {
+    const v = r[k];
+    if (v !== undefined && v !== null && !(typeof v === "string" && v.trim() === "")) return v;
+  }
+  return undefined;
+}
+
+// Map a free-text priority/severity token onto the GapEntry severity enum.
+function normSeverity(v: unknown): Severity | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim().toLowerCase();
+  if (SEVERITIES.includes(s as Severity)) return s as Severity;
+  if (s === "high" || s === "urgent" || s === "severe") return "critical";
+  if (s === "medium" || s === "moderate" || s === "med") return "warning";
+  if (s === "low" || s === "minor" || s === "trivial") return "info";
+  return null;
+}
+
+// Map a direction token or a status label onto the direction enum.
+function normDirection(v: unknown): Direction | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim().toLowerCase();
+  if (DIRECTIONS.includes(s as Direction)) return s as Direction;
+  // A status label implies direction: missing/partial are below the target.
+  if (s === "missing" || s === "partial" || s === "behind" || s === "under") return "below";
+  if (s === "have" || s === "met" || s === "done") return "at";
+  return null;
+}
+
+// Given a status label, derive a default severity when the model gave none.
+function severityFromStatus(status: unknown): Severity {
+  const s = typeof status === "string" ? status.trim().toLowerCase() : "";
+  if (s === "missing") return "critical";
+  if (s === "partial") return "warning";
+  return "info";
+}
+
+// Validate + normalize a single untrusted model entry into a GapEntry, or null to drop.
+// Alias-tolerant: accepts the model's natural key variants and derives missing
+// direction/severity from the status. Drops fully-"have" items (no gap).
 function validateEntry(raw: unknown): GapEntry | null {
   if (typeof raw !== "object" || raw === null) return null;
   const r = raw as Record<string, unknown>;
-  const metric = typeof r.metric === "string" ? r.metric.trim() : "";
-  if (!metric) return null;
 
-  const direction: Direction = DIRECTIONS.includes(r.direction as Direction)
-    ? (r.direction as Direction)
-    : "unknown";
-  const severity: Severity = SEVERITIES.includes(r.severity as Severity)
-    ? (r.severity as Severity)
-    : "info";
+  const metric = coerceScalar(pick(r, ["metric", "name", "item", "ideal_row"]));
+  const metricStr = typeof metric === "string" ? metric.trim() : metric != null ? String(metric) : "";
+  if (!metricStr) return null;
+
+  // The status label (own key or embedded in a "current" alias) drives filtering + defaults.
+  const statusRaw = pick(r, ["status", "current_status", "state"]);
+  const statusStr = typeof statusRaw === "string" ? statusRaw.trim().toLowerCase() : "";
+  // Drop fully-satisfied items — a gap engine reports gaps, not wins.
+  if (statusStr === "have" || statusStr === "met" || statusStr === "done") return null;
+
+  const direction: Direction =
+    normDirection(pick(r, ["direction", "trend"])) ?? normDirection(statusRaw) ?? "unknown";
+
+  const severity: Severity =
+    normSeverity(pick(r, ["severity", "priority", "importance"])) ??
+    (statusStr ? severityFromStatus(statusStr) : "info");
+
+  // current: prefer an explicit current value; fall back to the status label as the signal.
+  const currentVal = coerceScalar(pick(r, ["current", "current_value", "current_status", "status", "state"]));
+  const target = coerceScalar(pick(r, ["target", "goal", "ideal", "target_value"]));
+  const note = coerceScalar(pick(r, ["note", "gap_description", "gap_narrative", "next", "blocker_or_next", "action"]));
 
   const entry: GapEntry = {
-    metric,
-    current: coerceScalar(r.current),
-    target: coerceScalar(r.target),
+    metric: metricStr,
+    current: currentVal,
+    target,
     direction,
     severity,
   };
-  if (typeof r.note === "string" && r.note.trim()) entry.note = r.note.trim();
+  if (typeof note === "string" && note.trim()) entry.note = note.trim();
   return entry;
 }
 
@@ -124,11 +181,22 @@ function fallbackGap(dim: string, reason: string): DimensionGap {
 const SYSTEM_PROMPT =
   "You are a life-state gap analyzer. You compare a person's CURRENT reality against " +
   "their IDEAL target for one life dimension and extract concrete, per-metric gaps. " +
-  "Return STRICT JSON ONLY — a JSON array (no prose, no markdown fences). Each element " +
-  'must be: {"metric": string, "current": string|number|null, "target": string|number|null, ' +
+  "The IDEAL block is prose describing the desired state, often with specific targets " +
+  "(e.g. 'three 90-minute rides per week', 'no more than 2 meetings a day'). The CURRENT " +
+  "block lists items with a 'status: have|partial|missing' label. For each CURRENT item " +
+  "that is NOT fully 'have', emit one gap: set \"metric\" to the item's short name; set " +
+  '"target" to the concrete target you find in the IDEAL prose for that item (a number/phrase, ' +
+  'not null, whenever the IDEAL states one); set "current" to a short phrase describing where ' +
+  "they are now (use the status — 'missing' → not started, 'partial' → partially there — plus " +
+  'any detail in the row); set "direction" to how CURRENT sits vs TARGET ("below" when short of ' +
+  'the target, "at" when met, "above" when exceeding, "unknown" only if truly indeterminable); ' +
+  'set "severity" by how far off and how important ("critical" for a fully-missing high-stakes ' +
+  'item, "warning" for partial or moderately-off, "info" for minor); add a one-line "note" naming ' +
+  "the concrete next action to close the gap when the IDEAL prose implies one. Skip items that are " +
+  'fully "have" (no gap). Return STRICT JSON ONLY — a JSON array, no prose, no markdown fences. ' +
+  'Each element: {"metric": string, "current": string|number|null, "target": string|number|null, ' +
   '"direction": "above"|"below"|"at"|"unknown", "severity": "critical"|"warning"|"info"|"none", ' +
-  '"note"?: string}. "direction" describes where CURRENT sits relative to TARGET. Use "unknown" ' +
-  "when a value is missing. If there are no meaningful gaps, return an empty array [].";
+  '"note"?: string}. If there are no non-"have" items, return an empty array [].';
 
 // Shared Haiku-powered extractor for a metric dimension.
 async function extractGap(dim: MetricDimension): Promise<DimensionGap> {
