@@ -237,10 +237,11 @@ CRITICAL RULES FOR TELEGRAM MODE:
 
           const msg = message as any
 
-          // Capture session ID for resume
+          // Track the session ID for logging, but do NOT pin it for resume here.
+          // Pinning happens only on a successful `result` below — pinning at init
+          // would remember a session even when the turn later fails or times out.
           if (msg.type === "system" && msg.subtype === "init" && msg.session_id) {
-            lastSessionId = msg.session_id
-            log("info", "Session initialized", { sessionId: lastSessionId })
+            log("info", "Session initialized", { sessionId: msg.session_id })
           }
 
           // Streaming text deltas (progressive updates)
@@ -262,8 +263,13 @@ CRITICAL RULES FOR TELEGRAM MODE:
           if (msg.type === "result") {
             if (msg.subtype === "success" && msg.result) {
               fullText = msg.result
+              // Only pin a session for resume once it produced a good result.
+              // A failed/errored result must NOT be remembered, or the next
+              // message resumes a poisoned session → empty or stale replies.
+              if (msg.session_id) lastSessionId = msg.session_id
+            } else {
+              lastSessionId = undefined
             }
-            if (msg.session_id) lastSessionId = msg.session_id
             log("info", "SDK session complete", {
               durationMs: Date.now() - startTime,
               numTurns: msg.num_turns,
@@ -293,6 +299,9 @@ CRITICAL RULES FOR TELEGRAM MODE:
 
       if (!fullText) {
         fullText = "Sorry, I wasn't able to generate a response. Try again?"
+        // Empty response (incl. timeout abort) means this session is not usable —
+        // drop it so the next message starts fresh instead of resuming a wedged one.
+        lastSessionId = undefined
         log("error", "Empty response from SDK")
       }
 
@@ -331,6 +340,9 @@ CRITICAL RULES FOR TELEGRAM MODE:
       await appendChatLog(sanitized, fullText)
 
     } catch (err) {
+      // A thrown error leaves the session in an unknown state — drop it so the
+      // next message starts fresh rather than resuming a poisoned session.
+      lastSessionId = undefined
       log("error", "Message processing failed", { error: String(err) })
       await ctx.reply("Something went wrong processing your message. Try again?").catch(() => {})
     } finally {
