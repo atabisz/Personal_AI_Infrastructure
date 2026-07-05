@@ -7,7 +7,7 @@
 > Two things drifted since the original 2026-07-04 draft, both now corrected inline below:
 > 1. **The live tree was renamed `PAI/` → `LIFEOS/`** (claude-config commits `a7662ce` "the cut" + `f0e1738` "repoint live surfaces"; see `docs/LIVE-PAI-TO-LIFEOS-MIGRATION-PLAN.md`, which is now executed history). Every `~/.claude/PAI/...` path is stale → use `~/.claude/LIFEOS/...`.
 > 2. **The scorer tool is `UpdateLifeosState.ts`, not `UpdatePaiState.ts`** — the latter name never existed as a live tool (it survives only in old log/memory artifacts).
-> Verified live 2026-07-06: `/api/telos/overview` renders **`health = 50%` (mode `coverage`)** and **`freedom = 70%` (mode `setup`)**. Health is now coverage-mode because `CURRENT_STATE/HEALTH.md` was authored 2026-07-05 (2 have / 2 missing = 50%). The earlier "65%/80%" numbers in this doc were pre-CURRENT_STATE and are gone.
+> Verified live 2026-07-06: `/api/telos/overview` renders **`health = 50%` (mode `coverage`)** and **`freedom = 67%` (mode `coverage`)**. BOTH are now coverage-mode: `CURRENT_STATE/HEALTH.md` was authored 2026-07-05 (2 have / 2 missing = 50%) and `CURRENT_STATE/FREEDOM.md` was authored 2026-07-06 (3 have / 2 partial / 1 missing = 67%). The earlier "65%/80%" and "freedom 70% setup" numbers in this doc were pre-CURRENT_STATE and are gone — freedom has already crossed into the Phase #2a coverage path.
 
 ---
 
@@ -47,14 +47,14 @@ USER/TELOS/CURRENT_STATE/<DIM>.md (authored have/partial/missing rows)  ← #1 o
 | Dim | file | `type:` | status | renders on /telos? |
 |-----|------|---------|--------|--------------------|
 | health | HEALTH.md | target | authored + `CURRENT_STATE/HEALTH.md` exists → **coverage-mode** (2 have / 2 missing) | ✅ 50% (coverage) |
-| freedom | FREEDOM.md | target | authored, no CURRENT_STATE yet → setup-mode | ✅ 70% (setup) |
+| freedom | FREEDOM.md | target | authored + `CURRENT_STATE/FREEDOM.md` exists (2026-07-06) → **coverage-mode** (3 have / 2 partial / 1 missing) | ✅ 67% (coverage) |
 | money | MONEY.md | opt-out | deliberate opt-out (2026-07-03 — do NOT prompt for financial targets) | — not tracked |
 | creative | CREATIVE.md | north-star | directional | — not tracked |
 | relationships | RELATIONSHIPS.md | north-star | directional | — not tracked |
 | rhythms | (absent) | — | no file | — not tracked |
 | infrastructure | (absent) | — | no file | — not tracked |
 
-`~/.claude/LIFEOS/USER/TELOS/CURRENT_STATE/` now has `README.md` + `SNAPSHOT.md` + **`HEALTH.md`** (authored 2026-07-05). Health is therefore the first dimension scored by real coverage. The other target dims (freedom) still fall to the setup-% path until their CURRENT_STATE file is authored — that authoring IS the bridge to Phase #2.
+`~/.claude/LIFEOS/USER/TELOS/CURRENT_STATE/` now has `README.md` + `SNAPSHOT.md` + **`HEALTH.md`** (authored 2026-07-05) + **`FREEDOM.md`** (authored 2026-07-06). Both target dims are therefore scored by real coverage — health was first, freedom followed, which means Phase #2a is already in motion. Any further target dim stays on the setup-% path until its CURRENT_STATE file is authored — that authoring IS the bridge to Phase #2.
 
 ---
 
@@ -75,7 +75,7 @@ USER/TELOS/CURRENT_STATE/<DIM>.md (authored have/partial/missing rows)  ← #1 o
 ## Verify
 
 - Run `bun ~/.claude/LIFEOS/TOOLS/UpdateLifeosState.ts` → new/edited dims get a pct (or "—" if opt-out/north-star); a dim with a CURRENT_STATE file gets `mode: "coverage"`, else `mode: "setup"`.
-- Restart Pulse (`bun run pulse.ts` — not watch-mode), then `curl -s localhost:31337/api/telos/overview | jq '.dimensions'` → the dims render (today: health 50/coverage, freedom 70/setup).
+- Restart Pulse (`bun run pulse.ts` — not watch-mode), then `curl -s localhost:31337/api/telos/overview | jq '.dimensions'` → the dims render (today: health 50/coverage, freedom 67/coverage).
 - `Skill("Interceptor")` on `/telos` → rings show the dimensions honestly (no fabricated numbers, opt-outs absent not 0%).
 
 ## Acceptance

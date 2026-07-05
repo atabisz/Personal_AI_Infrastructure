@@ -7,7 +7,7 @@
 > Corrected inline below, same drift as the Phase #1 doc:
 > 1. **Live tree renamed `PAI/` → `LIFEOS/`** (claude-config `a7662ce` + `f0e1738`; see `docs/LIVE-PAI-TO-LIFEOS-MIGRATION-PLAN.md`, now executed history). Every `~/.claude/PAI/...` / `PAI/TOOLS/...` / `PAI/PULSE/...` path is stale.
 > 2. **Scorer tool is `UpdateLifeosState.ts`**, not `UpdatePaiState.ts`.
-> 3. **Step #2a is partly DONE.** `CURRENT_STATE/HEALTH.md` was authored 2026-07-05, so `health` already scores by real coverage (`mode: coverage`, 50%) — the "MOSTLY ABSENT" framing below is superseded: health is the worked example, freedom is the next candidate.
+> 3. **Step #2a is DONE for both target dims.** `CURRENT_STATE/HEALTH.md` (authored 2026-07-05) and `CURRENT_STATE/FREEDOM.md` (authored 2026-07-06) both score by real coverage now — health `mode: coverage` 50%, freedom `mode: coverage` 67%. The "MOSTLY ABSENT" framing below is superseded: health and freedom are the worked examples; #2a's remaining frontier is optional (a third target dim, or wiring propose/approve into a cadence).
 
 ---
 
@@ -33,7 +33,7 @@ USER/TELOS/CURRENT_STATE/<DIM>.md (have/partial/missing rows) ◀── the inpu
 
 ## Why most dims still show only a "setup %"
 
-`UpdateLifeosState.ts` scores a `target` dimension by **authored substance** (`sections×10 + bullets×5`, excluding not-scored headings) — i.e. *how fully written the IDEAL file is*, NOT how close reality is to it. That's honest (the ring is labeled "Dimension setup", summary prose says "articulated"), but it's not the gap. Real coverage requires a **CURRENT_STATE source** describing where the principal actually is. **`health` now has one** (`CURRENT_STATE/HEALTH.md`, authored by hand 2026-07-05) so it already scores coverage — it's the proof the path works. Every OTHER target dim (freedom) is still setup-% until its CURRENT_STATE file exists.
+`UpdateLifeosState.ts` scores a `target` dimension by **authored substance** (`sections×10 + bullets×5`, excluding not-scored headings) — i.e. *how fully written the IDEAL file is*, NOT how close reality is to it. That's honest (the ring is labeled "Dimension setup", summary prose says "articulated"), but it's not the gap. Real coverage requires a **CURRENT_STATE source** describing where the principal actually is. **Both `health` and `freedom` now have one** (`CURRENT_STATE/HEALTH.md` authored 2026-07-05, `CURRENT_STATE/FREEDOM.md` authored 2026-07-06) so both score coverage — proof the path works on more than one dim. Any OTHER target dim added later is setup-% until its CURRENT_STATE file exists.
 
 **The existing machinery that's ready for real coverage:**
 - `UpdateLifeosState.computeFromCurrent(file)` — ALREADY computes real coverage: `pct = (have + 0.5·partial)/total × 100` from `- <item>: status: have|partial|missing` rows in `CURRENT_STATE/<DIM>.md` (`UpdateLifeosState.ts:87`). **This is pure regex — no LLM. Live-proven on HEALTH.md.**
@@ -46,8 +46,8 @@ USER/TELOS/CURRENT_STATE/<DIM>.md (have/partial/missing rows) ◀── the inpu
 
 ## The path (three sub-steps, increasing fidelity)
 
-### #2a — Populate CURRENT_STATE so the existing regex path fires (smallest real-gap step, no LLM) — STARTED
-`computeFromCurrent` already does real coverage; it just needs input per dimension. **Done for health** (`CURRENT_STATE/HEALTH.md` → 50% coverage). **Next:** repeat for `freedom` (author `CURRENT_STATE/FREEDOM.md` with `status: have|partial|missing` rows) and any other target dim the principal wants scored by reality — the score flips automatically from setup% to coverage%, no scorer change. Optionally wire propose/approve into a cadence for semi-automated capture (respect the approval-gate). **This is the cheapest real-gap step and the current frontier.**
+### #2a — Populate CURRENT_STATE so the existing regex path fires (smallest real-gap step, no LLM) — DONE for health + freedom
+`computeFromCurrent` already does real coverage; it just needs input per dimension. **Done for health** (`CURRENT_STATE/HEALTH.md` → 50% coverage) **and freedom** (`CURRENT_STATE/FREEDOM.md` → 67% coverage, authored 2026-07-06). **Next:** repeat for any other target dim the principal wants scored by reality (author its `CURRENT_STATE/<DIM>.md` with `status: have|partial|missing` rows) — the score flips automatically from setup% to coverage%, no scorer change. Optionally wire propose/approve into a cadence for semi-automated capture (respect the approval-gate). **This is the cheapest real-gap step; two dims prove the path — the frontier is now optional breadth (more dims) or #2b (semantic gap).**
 
 ### #2b — Semantic gap via Haiku (ComputeGap's intended upgrade)
 Implement the Haiku extraction ComputeGap's header describes (`ComputeGap.ts:14,62`): feed IDEAL vs CURRENT prose to `LIFEOS/TOOLS/Inference.ts` and extract a real per-metric gap (`GapEntry`) for the metric dimensions (health/money/freedom); keep narrative dims (relationships/creative/rhythms) as reminders, not scored gaps. Feed the result into `LIFEOS_STATE.json` — add a `coverage`/`gap` field, or (if replacing) override `pct`. (Note: `money` is `opt-out` today, so gate it — don't compute a money gap the principal opted out of.)
@@ -62,7 +62,7 @@ Map coverage/gap → letter grades + a "next action to raise this grade" per dim
 When `pct` stops being a setup % and becomes real closeness-to-ideal, the honest-labeling done in commits `1406e9f` (live) / `d325aeb` (fork) should be **reversed** so the UI matches the new meaning:
 - `LIFEOS/PULSE/Observability/src/app/telos/_v7/hero.tsx` — ring label "Dimension setup" → back to "Current vs Ideal".
 - `_v7/summary.ts` `buildHeadline`/`buildPosition` — articulation prose ("X% articulated / left to articulate") → back to achievement framing ("X% of ideal / gaps to close").
-These were intentionally written to be cheap to flip. **Don't flip them globally until the number is genuinely coverage/gap** — otherwise you reintroduce the "articulated masquerading as achieved" dishonesty. **Subtlety now that dims are mixed-mode:** health is already `mode: coverage` while freedom is `mode: setup`, so the label must key off each dim's `mode` field, not a single global flip.
+These were intentionally written to be cheap to flip. **Don't flip them globally until the number is genuinely coverage/gap** — otherwise you reintroduce the "articulated masquerading as achieved" dishonesty. **Subtlety now that dims are mixed-mode:** both `health` and `freedom` are already `mode: coverage`, while any un-authored target dim is `mode: setup`, so the label must key off each dim's `mode` field, not a single global flip. **Fork caveat:** the public fork (`c:/src/LifeOS`) ships an OLDER `UpdateLifeosState.ts` whose `DimensionState` does NOT emit the `mode` field — live drifted ahead. Before the per-dim label work lands in the fork, mirror the `mode`-emitting scorer (and the `type:`-frontmatter IDEAL files) from live.
 
 Also coordinate the reader: `LIFEOS/PULSE/Observability/observability.ts` `buildDimensionsFromIdealState` currently reads `pct` (+ `velo`, `mode`) and hardcodes `ideal:100`. If #2b adds a separate `coverage` field rather than overriding `pct`, teach the reader/UI which one to surface.
 
