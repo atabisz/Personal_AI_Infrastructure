@@ -17,8 +17,8 @@
  * HOME/tmp sweep (Windows support plan Step 3) safe: any NEW offender fails the
  * lint, so the debt cannot silently grow while the tail is worked down.
  *
- * Scans the WHOLE repo tree by default (Releases/, Packs/Utilities/,
- * Packs/Media/ duplicates, skills, hooks, tools) — not just one snapshot.
+ * Scans the WHOLE repo tree by default (Releases/, LifeOS/install/skills/,
+ * hooks, tools) — not just one snapshot.
  *
  * Enforcement model (Windows support plan): the repo currently carries a large
  * long-tail of pre-existing offenders (Step 3 clears them). So by default this

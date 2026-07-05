@@ -152,7 +152,7 @@ function scanAllFilesForSensitiveContent(stagedFiles: string[], manifest: Protec
       continue;
     }
 
-    // Check wildcard exceptions (e.g., "Packs/*/README.md", "Releases/*/.claude/skills/*/SKILL.md")
+    // Check wildcard exceptions (e.g., "Releases/*/.claude/skills/*/SKILL.md")
     const isWildcardException = exceptions.some(exc => {
       if (exc.includes('*')) {
         // Escape special regex characters except *, then replace * with [^/]+
