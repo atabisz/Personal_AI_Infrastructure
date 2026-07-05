@@ -73,7 +73,7 @@ function deploySkills(payloadInstall: string, configRoot: string, apply: boolean
   return r;
 }
 
-/** (b) runtime: install/LifeOS/<entry> → configRoot/LIFEOS/<entry>, skipping RUNTIME_SKIP. */
+/** (b) runtime: install/LIFEOS/<entry> → configRoot/LIFEOS/<entry>, skipping RUNTIME_SKIP. */
 function deployRuntime(payloadInstall: string, configRoot: string, apply: boolean): DeployResult {
   const src = join(payloadInstall, "LIFEOS");
   const dst = join(configRoot, "LIFEOS");

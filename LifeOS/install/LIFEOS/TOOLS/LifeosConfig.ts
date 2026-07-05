@@ -119,7 +119,7 @@ export function loadLifeosConfig(opts: { path?: string; force?: boolean } = {}):
   return validated;
 }
 
-export function clearPaiConfigCache(): void {
+export function clearLifeosConfigCache(): void {
   cache = null;
 }
 

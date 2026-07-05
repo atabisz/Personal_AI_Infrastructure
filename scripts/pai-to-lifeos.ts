@@ -70,8 +70,9 @@ const REWRITE_RULES: Rule[] = [
   // mixed-case legacy dir literal -> "LIFEOS". Only inside quotes, so brand prose is untouched.
   { re: /(['"])LifeOS\1/g, replace: "$1LIFEOS$1", label: "path: quoted 'LifeOS' dir segment" },
   // Payload symbol renames (the framework is now Lifeos, not Pai). Word-bounded.
-  { re: /\bPaiConfig\b/g, replace: "LifeosConfig", label: "symbol: PaiConfig" },
   { re: /\bloadPaiConfig\b/g, replace: "loadLifeosConfig", label: "symbol: loadPaiConfig" },
+  { re: /\bclearPaiConfigCache\b/g, replace: "clearLifeosConfigCache", label: "symbol: clearPaiConfigCache" },
+  { re: /\bPaiConfig\b/g, replace: "LifeosConfig", label: "symbol: PaiConfig" },
   { re: /\bUpdatePaiState\b/g, replace: "UpdateLifeosState", label: "symbol: UpdatePaiState" },
   { re: /\bGeneratePaiState\b/g, replace: "GenerateLifeosState", label: "symbol: GeneratePaiState" },
   { re: /\bPaiUpgrade\b/g, replace: "LifeosUpgrade", label: "symbol: PaiUpgrade" },
@@ -186,6 +187,13 @@ function runSelfTest(): number {
       in: "UpdatePaiState reads paiUserDir()",
       wantText: "UpdateLifeosState reads lifeosUserDir()",
       wantRewrites: 2,
+      wantFlags: 0,
+    },
+    {
+      name: "clearPaiConfigCache not eaten by generic PaiConfig rule",
+      in: "export function clearPaiConfigCache()",
+      wantText: "export function clearLifeosConfigCache()",
+      wantRewrites: 1,
       wantFlags: 0,
     },
     {

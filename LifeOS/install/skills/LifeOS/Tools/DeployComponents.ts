@@ -13,7 +13,7 @@
  * interactive flow, not a callable "just install the service" entry point.
  *
  * Self-staging: every component reads from the live runtime tree
- * `<configRoot>/LIFEOS`, falling back to the shipped payload `install/LifeOS/`
+ * `<configRoot>/LIFEOS`, falling back to the shipped payload `install/LIFEOS/`
  * when the runtime tree isn't laid down yet — uniform across all four (the
  * cross-vendor audit flagged the prior pulse/statusline-only staging as an
  * inconsistent contract).
@@ -46,7 +46,7 @@ type Component = (typeof KNOWN_COMPONENTS)[number];
 interface Ctx {
   configRoot: string;
   lifeosDir: string; // <configRoot>/LIFEOS — the live runtime root
-  payloadRoot: string; // <skillRoot>/install/LifeOS — the shipped runtime tree
+  payloadRoot: string; // <skillRoot>/install/LIFEOS — the shipped runtime tree
   installRoot: string; // <skillRoot>/install — settings.enhancements.json + agents/ live here
   home: string;
   launchAgents: string;
@@ -72,12 +72,12 @@ function arg(a: string[], flag: string): string | undefined {
 
 /**
  * Resolve the live runtime dir robustly. The runtime references all-caps
- * `LIFEOS` (statusline, plists), but the sibling install tools use mixed-case
- * `LifeOS` (works on macOS's case-insensitive FS, latent on Linux). Pick
- * whichever actually exists; default to the all-caps runtime name.
+ * `LIFEOS`. The legacy mixed-case `LifeOS` deploy target was retired in the
+ * PAI→LIFEOS rename; a pre-rename install may still carry it, so accept it as a
+ * fallback but default to the canonical all-caps runtime name.
  */
 function resolveLifeosDir(configRoot: string): string {
-  for (const name of ["LIFEOS", "LIFEOS"]) {
+  for (const name of ["LIFEOS", "LifeOS"]) {
     if (existsSync(join(configRoot, name))) return join(configRoot, name);
   }
   return join(configRoot, "LIFEOS");
