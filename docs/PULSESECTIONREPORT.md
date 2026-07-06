@@ -2,7 +2,7 @@
 
 > **Subject:** PAI Pulse ("PAI Observatory") — the Life Dashboard, a Next.js app on `http://localhost:31337`.
 > **Generated:** 2026-06-30 · **Pulse build:** `build_1778733456794` · **Probe:** all routes live, HTTP 200.
-> **Method:** Source read (`PAI/Pulse/Observability/src/app/<route>/page.tsx`) + live HTTP probe, fanned out across 3 parallel `Explore` subagents grouped by nav cluster. Read-only — no Pulse files were modified.
+> **Method:** Source read (`LIFEOS/PULSE/Observability/src/app/<route>/page.tsx`) + live HTTP probe, fanned out across 3 parallel `Explore` subagents grouped by nav cluster. Read-only — no Pulse files were modified.
 
 > ### 🧭 Design-intent research pass — 2026-07-04
 >
@@ -25,7 +25,7 @@
 
 The 19 per-section 🧭 blocks below each answer *"what is this section for?"* This section answers the prior question — *"what pattern do they all implement?"* — so a validator has one design spine to score every section against. Three sourced ideas govern the whole dashboard; a fourth (the section-mapping) is in the next block.
 
-> **Now canonical doctrine (2026-07-04):** the design frame and the Daemon↔Pulse mapping below were promoted into the system docs — `PAI/DOCUMENTATION/Pulse/PulseSystem.md` → "Design intent & section mapping" (the two-ceilings lens + Daemon mapping) and `PAI/DOCUMENTATION/LifeOs/LifeOsThesis.md` → "The Core Loop" (the DOM lineage). This report remains the *detailed, per-section, sourced* instrument; the canonical docs carry the *frame*. Applied live and to both fork trees (Releases + install).
+> **Now canonical doctrine (2026-07-04):** the design frame and the Daemon↔Pulse mapping below were promoted into the system docs — `LIFEOS/DOCUMENTATION/Pulse/PulseSystem.md` → "Design intent & section mapping" (the two-ceilings lens + Daemon mapping) and `LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md` → "The Core Loop" (the DOM lineage). This report remains the *detailed, per-section, sourced* instrument; the canonical docs carry the *frame*. Applied live and to both fork trees (Releases + install).
 
 ### 1. Desired Outcome Management (DOM) — the load-bearing frame
 
@@ -81,7 +81,7 @@ Every completion % below is a derived figure (treated as a conjecture until grou
 | **Data wiring** | 35% | Is it reading **real** data (live API / file / JSONL) vs mock / hardcoded / empty? |
 | **Feature completeness** | 25% | Are interactions present and working? No `disabled`/stub/"coming soon"/TODO markers? |
 
-**Key backend fact:** `pulse.ts` serves the wiki/perf/syslog/health API groups (`/api/performance`, `/api/pulse/health`, `/api/syslog`, `/api/wiki`) plus — **as of 2026-07-04** — the `/assistant/*` group once the DA module loads (config-gated on `[da].enabled`). The dashboard is otherwise largely a static export reading files/JSONL from `~/.claude/PAI/`. So **"UI-complete" and "wired to live data" diverge sharply** — many Life pages are fully built but render empty-state guides because the underlying `USER/*` source files don't exist yet on this install. That gap is the dominant driver of the scores below. *(This fact was written 2026-06-30 when `/assistant/*` was NOT served — see the 2026-07-04 update; the DA backend has since been built.)*
+**Key backend fact:** `pulse.ts` serves the wiki/perf/syslog/health API groups (`/api/performance`, `/api/pulse/health`, `/api/syslog`, `/api/wiki`) plus — **as of 2026-07-04** — the `/assistant/*` group once the DA module loads (config-gated on `[da].enabled`). The dashboard is otherwise largely a static export reading files/JSONL from `~/.claude/LIFEOS/`. So **"UI-complete" and "wired to live data" diverge sharply** — many Life pages are fully built but render empty-state guides because the underlying `USER/*` source files don't exist yet on this install. That gap is the dominant driver of the scores below. *(This fact was written 2026-06-30 when `/assistant/*` was NOT served — see the 2026-07-04 update; the DA backend has since been built.)*
 
 **Two numbers, not one (important).** The blended **Completion %** above silently deducts for *empty source data on this install* — which penalises the environment, not Pulse's code. A data-driven Life page correctly rendering an empty-state is **complete software**, not 40%-done software. To avoid measuring "whose laptop ran this," every section below also carries a **Software maturity (UI + wiring present, ignoring install data)** figure. Read maturity for *how built-out the code is*; read completion for *what a user sees on this specific install*. Where they diverge is exactly where source files are missing. Note also that trivially-static pages reach 100% completion easily (no data dependency to be empty), so completion alone is **not** directly comparable across static vs data-driven surfaces — maturity is the fairer cross-section comparison.
 
@@ -134,6 +134,10 @@ These six pages share a pattern: **complete, polished UI with Recharts visualiza
 
 ### 2. `/telos` — TELOS
 
+> ### ✅ Update — 2026-07-06: dimensions now score by REAL coverage (LifeOS-State Phase 2)
+>
+> The 2026-07-04 note below said dimensions render "sample/empty" because there was "no `LIFEOS_STATE.json`". **That is now superseded.** LifeOS-State Phase 2 shipped (see `docs/LIFEOS-STATE-PHASE2-REAL-COVERAGE.md`): `LIFEOS_STATE.json` exists and `/api/telos/overview` serves **4 dimensions in real `mode: coverage`** — health 50%, freedom 67%, creative 60%, relationships 67% (live-probed 2026-07-06). The scorer (`UpdateLifeosState.ts`) emits per-dim `mode` (coverage vs setup); `ComputeGap.ts` computes a real Haiku semantic gap (verified via headroom→Bedrock); and the client (`summary.ts`/`hero.tsx`) renders honest mode-aware language — the dashboard reads *"61% tracked on average… furthest along at 67% covered"* not "articulated" (Interceptor-verified). money is `opt-out`; rhythms/infrastructure remain untracked (no file). Both trees carry it (live `db4643a`/`d2a5df0`/`42803ea`; fork `44aa164`/`8f35d00`/`a61715e`). This meaningfully advances the AS3/DOM axis for `/telos`: it now shows a current-state (coverage) related to an ideal-state and a computed gap — 3 of the DOM triad, missing only the proactive recommendation. **Completion for the *dimensions surface* is no longer gated on empty data for these 4 dims; the K#/PR#/KPI prose-authoring gap (below) still applies to metrics/projects.**
+
 > ### ✅ Update — 2026-07-04: the TELOS backend was BUILT (re-scored)
 >
 > The original 65%/90% reflected the *starved backend* — `handleTelosOverview()` hard-returned `null` for metrics/projects/work/etc. That gap is now largely closed. Implemented + shipped **in both trees** (canonical fork + live `~/.claude`), Cato cross-vendor audited, live-verified over real HTTP:
@@ -144,7 +148,7 @@ These six pages share a pattern: **complete, polished UI with Recharts visualiza
 >
 > Commits (signed): fork `0210215` + `788ea29`; live `8026006` + `b7529f6`. Plan/as-built: `docs/TELOS-IMPLEMENTATION-PLAN.md` (Build status).
 >
-> **Re-scored to ~92% completion / 100% maturity** (Phase 4 + follow-ups shipped 2026-07-04: 7-granular dimensions incl. HZ-5 reconcile, `computeStranded`, `idealState` — fork `fb93a02`/live `5fdd4d8`; then `owner` from principal identity + the `summary.ts` analysis engine ported to the live client, gated on backend `meta.isPersonalized` — fork `708787c`/live `c38bbf6`, live-verified in real Chrome). Maturity 100: every canonical surface — primitives, computed layer (dimensions/velocity/stranded/ideal-state), owner, and the pinch/drift/traction analysis engine — is built + cross-vendor audited AND now present on BOTH trees (the live client previously lacked the engine). Team/Budget remain deliberately out (not Miessler-canonical), so they don't count against maturity. Completion ~92, not higher, because the user's *real* TELOS files are still prose without `K#`/`PR#`/KPI sub-fields + no `LIFEOS_STATE.json`, so metrics/projects/velocity render sample/empty until authored — "empty data ≠ broken code." Superseded figures struck below.
+> **Re-scored to ~92% completion / 100% maturity** (Phase 4 + follow-ups shipped 2026-07-04: 7-granular dimensions incl. HZ-5 reconcile, `computeStranded`, `idealState` — fork `fb93a02`/live `5fdd4d8`; then `owner` from principal identity + the `summary.ts` analysis engine ported to the live client, gated on backend `meta.isPersonalized` — fork `708787c`/live `c38bbf6`, live-verified in real Chrome). Maturity 100: every canonical surface — primitives, computed layer (dimensions/velocity/stranded/ideal-state), owner, and the pinch/drift/traction analysis engine — is built + cross-vendor audited AND now present on BOTH trees (the live client previously lacked the engine). Team/Budget remain deliberately out (not Miessler-canonical), so they don't count against maturity. Completion ~92, not higher, because the user's *real* TELOS files are still prose without `K#`/`PR#`/KPI sub-fields, so metrics/projects/velocity render sample/empty until authored — "empty data ≠ broken code." *(2026-07-06: the "+ no `LIFEOS_STATE.json`" part of this clause is now stale — that file exists and 4 dimensions score by real coverage; see the 2026-07-06 update block above. The K#/PR#/KPI prose gap for metrics/projects still stands.)* Superseded figures struck below.
 
 - **Goal:** Display the TELOS v7 strategic framework (11 primitives: ideal state, problems, missions, goals, metrics, challenges, strategies, projects, work, team, budget) in column / tree / graph views.
 
@@ -283,7 +287,7 @@ The System cluster splits cleanly. The **wiki-backed group (`/agents`, `/knowled
 > **🧭 Daniel's intent** — *Canonical concept, fork-implemented UI.*
 > - **Purpose:** browse the system's own subsystem documentation — the self-describing layer of the OS. In the LifeOS repo the dashboard `docs/page.tsx` fetches `/api/wiki` + `/api/wiki/doc/{slug}` and shows a "Recently Updated" list with freshness pills. `[inference]` that Daniel intends `/docs` as a distinct *dashboard section* — website research found **no "DOCS" section named** on his site; the closest published analog is Daemon's public context docs (Books, Predictions, Preferences, Routine). The concept (self-documenting OS with a doc-integrity pipeline) is canonical; the tab is a repo/fork surface.
 > - **Principles:** the OS should be legible to its operator; docs stay fresh (freshness pills) and cross-referenced (the `DocIntegrity` hook keeps cross-refs valid). *"As deterministic as possible"* and self-documenting are founding principles (`ARCHITECTURE_SUMMARY.md`).
-> - **Data sources (validation target):** the `/api/wiki` backend indexing `PAI/DOCUMENTATION/*` (System Architecture, Algorithm, Decisions, Changelog); `/api/wiki/doc/{slug}`.
+> - **Data sources (validation target):** the `/api/wiki` backend indexing `LIFEOS/DOCUMENTATION/*` (System Architecture, Algorithm, Decisions, Changelog); `/api/wiki/doc/{slug}`.
 > - **Validation check:** does it index the subsystem docs with search, section grouping, freshness badges, and backlinks? Score against: *docs are browsable by subsystem, searchable, and show recency + cross-references.* 100% because it rides the mature wiki backend.
 
 - **Completion:** **100%.**
@@ -451,7 +455,7 @@ Two areas are first-class in Daniel's stated intent but have **no dedicated Puls
 - **`/security` (65%)** and **`/agents` (95%)** are where the score reflects a genuine implementation gap rather than missing source data — respectively: a disabled inspector tab; opaque sub-component data wiring. *(`/assistant` was here at 40%/50% — its backend was built 2026-07-04 and it is now 90%/100%; the only empties are the phase-gated diary/opinions writers.)*
 - **`/system` overlaps `/docs`+`/knowledge`** and is unlinked — likely a predecessor superseded by the promoted System-nav pages.
 
-*Report produced read-only; no files under `~/.claude/PAI/Pulse/` were modified.*
+*Report produced read-only; no files under `~/.claude/LIFEOS/PULSE/` were modified.*
 
 ---
 
@@ -486,7 +490,7 @@ Primary sources fetched during the 2026-07-04 design-intent research pass (three
 - Channel: [youtube.com/@unsupervised-learning](https://www.youtube.com/@unsupervised-learning). **Retrieval caveat:** YouTube watch-pages returned only nav footer via WebFetch; titles/URLs are from search-result listings and the design-intent quotes come from the blog posts above, not the videos. Video *bodies* were not verified — to extract them, use the Interceptor/Browser skill against these URLs.
 
 ### Cross-referenced PAI-internal docs (this install)
-- `PAI/DOCUMENTATION/LifeOs/LifeOsThesis.md`, `PAI/DOCUMENTATION/LifeOs/LifeOsSchema.md`, `PAI/DOCUMENTATION/Pulse/PulseSystem.md` — the canonical thesis, USER/ schema, and Pulse subsystem doc.
+- `LIFEOS/DOCUMENTATION/LifeOs/LifeOsThesis.md`, `LIFEOS/DOCUMENTATION/LifeOs/LifeOsSchema.md`, `LIFEOS/DOCUMENTATION/Pulse/PulseSystem.md` — the canonical thesis, USER/ schema, and Pulse subsystem doc.
 - [`docs/DA-PERSONALITY-IMPLEMENTATION-PLAN.md`](DA-PERSONALITY-IMPLEMENTATION-PLAN.md) — prior verified-citation research on the DA/`/assistant` intent (source of the `/assistant` trait values + Kai quotes).
 
 ### Dead URLs — do NOT cite (agent-verified 404 on 2026-07-04)
