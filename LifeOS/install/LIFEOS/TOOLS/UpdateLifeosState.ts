@@ -54,9 +54,26 @@ interface DimensionState {
   pct: number | null;
   velo: number | null;   // change in pct since the previous run (null until a prior point differs)
   mode: "coverage" | "setup" | null;   // coverage = real have/partial/missing rows; setup = IDEAL articulation %; null = not tracked
+  // Life-calibrated letter grade derived from pct (A≥85/B≥70/C≥55/D≥40/F<40).
+  // null when pct is null (opt-out / north-star / untracked) — never a misleading "F".
+  grade: "A" | "B" | "C" | "D" | "F" | null;
   tbd_count: number;
   last_updated: string | null;
   source_file: string;
+}
+
+// Deterministic pct → life-calibrated letter grade (Phase 2c). Pure function:
+// same pct always yields the same letter, no inference. Bands chosen to reward
+// genuine partial progress on life dimensions rather than punish it academically
+// (user-chosen 2026-07-06). A null pct (opt-out / untracked) has NO grade.
+type Grade = "A" | "B" | "C" | "D" | "F";
+function gradeForPct(pct: number | null): Grade | null {
+  if (pct === null) return null;
+  if (pct >= 85) return "A";
+  if (pct >= 70) return "B";
+  if (pct >= 55) return "C";
+  if (pct >= 40) return "D";
+  return "F";
 }
 
 // Bump when the pct FORMULA changes — velo is only meaningful across
@@ -93,6 +110,7 @@ function computeFromCurrent(file: string): DimensionState | null {
     pct,
     velo: null,   // filled by build() from prior-run delta
     mode: "coverage",   // real have/partial/missing rows → achievement toward ideal
+    grade: gradeForPct(pct),
     tbd_count: missing,
     last_updated: readFrontmatterDate(content),
     source_file: `CURRENT_STATE/${file}`,
@@ -112,7 +130,7 @@ function computeFromIdeal(file: string): DimensionState {
   const path = join(IDEAL_DIR, file);
   if (!existsSync(path)) {
     // No file → unmeasured (null), NOT 0%/failing. UI renders null as "not tracked".
-    return { pct: null, velo: null, mode: null, tbd_count: 0, last_updated: null, source_file: file };
+    return { pct: null, velo: null, mode: null, grade: null, tbd_count: 0, last_updated: null, source_file: file };
   }
   const content = readFileSync(path, "utf-8");
   const type = readFrontmatterType(content);
@@ -124,7 +142,7 @@ function computeFromIdeal(file: string): DimensionState {
   // Deliberate opt-out / directional north-star are not scored (a choice, not a
   // gap) → pct null → "not tracked".
   if (type === "opt-out" || type === "north-star") {
-    return { pct: null, velo: null, mode: null, tbd_count, last_updated, source_file: `IDEAL_STATE/${file}` };
+    return { pct: null, velo: null, mode: null, grade: null, tbd_count, last_updated, source_file: `IDEAL_STATE/${file}` };
   }
 
   // type: target (or unspecified) → score by authored SUBSTANCE (populated
@@ -136,7 +154,7 @@ function computeFromIdeal(file: string): DimensionState {
   // EXCLUDED — counting them would inflate the score against the author's intent.
   const { sections, bullets } = countScorableSubstance(content);
   const pct = Math.max(0, Math.min(100, sections * 10 + bullets * 5));
-  return { pct, velo: null, mode: "setup", tbd_count, last_updated, source_file: `IDEAL_STATE/${file}` };
+  return { pct, velo: null, mode: "setup", grade: gradeForPct(pct), tbd_count, last_updated, source_file: `IDEAL_STATE/${file}` };
 }
 
 // Count `## ` sections and their `- ` bullets, SKIPPING any section whose heading
