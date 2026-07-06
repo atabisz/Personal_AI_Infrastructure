@@ -2762,7 +2762,7 @@ function parseProjects(raw: string): Array<{
 //
 // Composite rule for creative_freedom: average the underlying creative and
 // freedom percentages from LIFEOS_STATE.json. Missing source dimension contributes 0.
-function buildDimensionsFromIdealState(): Array<{ id: string; label: string; cur: number; ideal: number; velo: number; color: string; mode: "coverage" | "setup" | null }> {
+function buildDimensionsFromIdealState(): Array<{ id: string; label: string; cur: number; ideal: number; velo: number; color: string; mode: "coverage" | "setup" | null; grade: "A" | "B" | "C" | "D" | "F" | null }> {
   const idealDir = join(TELOS_DIR, "IDEAL_STATE")
   if (!existsSync(idealDir)) return []
 
@@ -2774,10 +2774,10 @@ function buildDimensionsFromIdealState(): Array<{ id: string; label: string; cur
   // if it has state OR an IDEAL_STATE/<DIM>.md file, so a fresh install with no
   // state still surfaces the dims it has authored an ideal for.
   const statePath = join(TELOS_DIR, "LIFEOS_STATE.json")
-  const state: Record<string, { pct?: number; velo?: number; mode?: "coverage" | "setup" | null; source_file?: string }> = {}
+  const state: Record<string, { pct?: number; velo?: number; mode?: "coverage" | "setup" | null; grade?: "A" | "B" | "C" | "D" | "F" | null; source_file?: string }> = {}
   if (existsSync(statePath)) {
     try {
-      const parsed = JSON.parse(readFileSync(statePath, "utf-8")) as { dimensions?: Record<string, { pct?: number; velo?: number; mode?: "coverage" | "setup" | null; source_file?: string }> }
+      const parsed = JSON.parse(readFileSync(statePath, "utf-8")) as { dimensions?: Record<string, { pct?: number; velo?: number; mode?: "coverage" | "setup" | null; grade?: "A" | "B" | "C" | "D" | "F" | null; source_file?: string }> }
       for (const [id, d] of Object.entries(parsed.dimensions ?? {})) {
         if (d && typeof d === "object") state[id] = d
       }
@@ -2816,7 +2816,23 @@ function buildDimensionsFromIdealState(): Array<{ id: string; label: string; cur
       mode:
         state[d.id]?.mode ??
         (state[d.id]?.source_file?.startsWith("CURRENT_STATE/") ? "coverage" : "setup"),
+      // Letter grade (A–F) for cur. Emitted by the scorer per dim; if absent (a
+      // stale pre-`grade` state file), derive it from pct with the fixed bands
+      // A>=85,B>=70,C>=55,D>=40,F<40. A scorer rerun repopulates `grade`. (These
+      // rows are already filtered to numeric pct, so gradeFromPct never sees null.)
+      grade: state[d.id]?.grade ?? gradeFromPct(Math.round(state[d.id]!.pct!)),
     }))
+}
+
+// Fixed letter-grade bands, shared with the scorer's emission and the client
+// fallback: A>=85, B>=70, C>=55, D>=40, F<40; null pct -> null grade (no badge).
+function gradeFromPct(pct: number | null | undefined): "A" | "B" | "C" | "D" | "F" | null {
+  if (typeof pct !== "number") return null
+  if (pct >= 85) return "A"
+  if (pct >= 70) return "B"
+  if (pct >= 55) return "C"
+  if (pct >= 40) return "D"
+  return "F"
 }
 
 // Reads the unified TELOS.md and splits it into a map of {sectionTitle:

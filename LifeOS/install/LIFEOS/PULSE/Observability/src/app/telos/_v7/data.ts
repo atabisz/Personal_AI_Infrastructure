@@ -24,6 +24,9 @@ export interface Dimension {
   // (how fully written, not achievement). Optional — absent on the sample
   // fixture and older API payloads, which the prose treats as "setup".
   mode?: "coverage" | "setup" | null;
+  // Letter grade (A–F) for `cur` against fixed bands (A>=85,B>=70,C>=55,D>=40,F<40).
+  // Emitted by the scorer per dimension; null for opt-out/untracked dims (no badge).
+  grade?: "A" | "B" | "C" | "D" | "F" | null;
 }
 
 export interface SnapshotMetric {
@@ -260,13 +263,13 @@ export const TELOS = {
     note: 'A sample target state measured across seven dimensions.',
   },
   dimensions: [
-    { id:'health',         label:'Health',         cur:71, ideal:90, velo:+1.2, color:'--health'         },
-    { id:'money',          label:'Money',          cur:62, ideal:95, velo:+0.0, color:'--money'          },
-    { id:'freedom',        label:'Freedom',        cur:54, ideal:90, velo:+3.1, color:'--freedom'        },
-    { id:'creative',       label:'Creative',       cur:48, ideal:85, velo:+2.4, color:'--creative'       },
-    { id:'relationships',  label:'Relationships',  cur:77, ideal:90, velo:-0.4, color:'--relationships'  },
-    { id:'rhythms',        label:'Rhythms',        cur:66, ideal:85, velo:+0.9, color:'--rhythms'        },
-    { id:'infrastructure', label:'Infrastructure', cur:60, ideal:90, velo:+1.8, color:'--infrastructure' },
+    { id:'health',         label:'Health',         cur:71, ideal:90, velo:+1.2, color:'--health',         grade:'B' },
+    { id:'money',          label:'Money',          cur:62, ideal:95, velo:+0.0, color:'--money',          grade:'C' },
+    { id:'freedom',        label:'Freedom',        cur:54, ideal:90, velo:+3.1, color:'--freedom',        grade:'D' },
+    { id:'creative',       label:'Creative',       cur:48, ideal:85, velo:+2.4, color:'--creative',       grade:'D' },
+    { id:'relationships',  label:'Relationships',  cur:77, ideal:90, velo:-0.4, color:'--relationships',  grade:'B' },
+    { id:'rhythms',        label:'Rhythms',        cur:66, ideal:85, velo:+0.9, color:'--rhythms',        grade:'C' },
+    { id:'infrastructure', label:'Infrastructure', cur:60, ideal:90, velo:+1.8, color:'--infrastructure', grade:'C' },
   ],
 
   snapshot: [
