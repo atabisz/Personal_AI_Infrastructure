@@ -62,13 +62,44 @@ export type NormalizeResult = {
  * language). This catches all four flagged shapes and rarely over-masks — few
  * legitimate 32+ char unbroken alphanumeric literals exist outside secrets/hashes/ids.
  * Over-masking in a diff-only pin costs nothing; a leaked secret costs a lot.
+ *
+ * ENTROPY GUARD (fixes the over-mask class Forge caught 2026-07-20): a ≥32-char
+ * quoted literal that is ALL-LOWERCASE kebab-case (only [a-z] and `-`) is an English
+ * doctrine phrase, not a secret — e.g. "generated-content-survives-regen" (32 chars)
+ * was being redacted, corrupting doctrine. Every real high-entropy secret the four
+ * flagged shapes represent (hex client secrets, voice_ids, tokens, nuclei strings)
+ * carries a DIGIT or MIXED CASE; a bare lowercase-hyphen phrase never does. So we
+ * require true entropy: the value must contain a digit OR both an upper- and a
+ * lowercase letter. A lowercase-only or uppercase-only hyphen/underscore phrase is
+ * treated as prose and left intact. This keeps ggshield parity (real secrets still
+ * masked) while never touching kebab/snake-case identifiers.
  */
 const SECRET_LITERAL_RE = /(['"])([A-Za-z0-9+/=_-]{32,})\1/g;
 const SECRET_MASK = "<REDACTED:high-entropy>";
 
+function hasSecretEntropy(v: string): boolean {
+  const hasDigit = /[0-9]/.test(v);
+  const hasUpper = /[A-Z]/.test(v);
+  const hasLower = /[a-z]/.test(v);
+  // Real secret: contains a digit, or mixes upper and lower case. A phrase of only
+  // one case class + separators (kebab/snake doctrine terms) has none of these.
+  //
+  // DOCUMENTED RESIDUAL (Forge audit 2026-07-20, LOW): this intentionally stops masking
+  // an all-lowercase-letters-only, no-digit ≥32-char literal (the kebab/snake doctrine
+  // case). A hypothetical all-lowercase-no-digit SECRET would also slip this mask — but
+  // maskSecrets is only the ggshield-clean pass for the diff-only vendored baseline, NOT
+  // the primary leak gate. build-release's scanBytes is the real gate: it catches such a
+  // value via the named-secret pattern (api_key/secret/password/token proximity). The
+  // residual class (a long lowercase-no-digit secret with NO secret-bearing name nearby)
+  // is rare — hex has digits, UUIDs have digits, most keys mix case — and accepted as the
+  // deliberate tradeoff to stop corrupting kebab-case doctrine phrases.
+  return hasDigit || (hasUpper && hasLower);
+}
+
 export function maskSecrets(text: string): { text: string; masked: number } {
   let masked = 0;
-  const out = text.replace(SECRET_LITERAL_RE, (_m, q: string) => {
+  const out = text.replace(SECRET_LITERAL_RE, (_m, q: string, v: string) => {
+    if (!hasSecretEntropy(v)) return `${q}${v}${q}`; // kebab/snake doctrine phrase — keep
     masked += 1;
     return `${q}${SECRET_MASK}${q}`;
   });
@@ -168,6 +199,28 @@ function runSelfTest(): number {
       wantRewrites: 0,
       wantFlags: 0,
       wantMasked: 0,
+    },
+    {
+      // Forge 2026-07-20: 32-char all-lowercase kebab doctrine phrase must NOT be
+      // masked (it has no digit and no mixed case → not high-entropy).
+      name: "kebab-case doctrine phrase NOT masked (no entropy)",
+      in: 'the "generated-content-survives-regen" clause',
+      wantText: 'the "generated-content-survives-regen" clause',
+      wantRewrites: 0,
+      wantFlags: 0,
+      wantMasked: 0,
+    },
+    {
+      // Entropy guard must still mask a ≥32-char literal that carries real entropy
+      // (mixed case AND digits). Built at runtime from a repeated obviously-synthetic
+      // pattern so no static high-entropy string sits in the source (keeps the secret
+      // scanner quiet) while still exercising hasSecretEntropy → masked.
+      name: "mixed-case+digit 32+ char literal still masked",
+      in: 'token = "' + "Ab1".repeat(12) + '"', // 36 chars, upper+lower+digit
+      wantText: 'token = "<REDACTED:high-entropy>"',
+      wantRewrites: 0,
+      wantFlags: 0,
+      wantMasked: 1,
     },
     {
       name: "prose sentence with spaces NOT masked",

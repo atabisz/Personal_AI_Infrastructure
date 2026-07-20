@@ -13,24 +13,31 @@ import {
 import path from "node:path";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
+import { normalize as normalizeTokens } from "./lifeos-normalize";
 
 type Args = { apply: boolean; only?: string; release?: string; prune: boolean; selfTest: boolean; help: boolean };
 type Action = "add" | "change" | "unchanged";
 type Entry = { relPath: string; srcAbs: string; destAbs: string; action: Action; bytes: Buffer };
 type ScanResult = { hit: boolean; pattern?: string };
 
+// SOURCE shape is the live tree, which was renamed PAI/ -> LIFEOS/ (framework
+// root) while the public RELEASE stays PAI/-shaped. So the allowlist walks the
+// LIFEOS/-shaped SOURCE; toDestRel() below remaps each path to the PAI/-shaped
+// DEST, and normalize() (lifeos-normalize.ts) rewrites LIFEOS->PAI tokens inside
+// file CONTENT. The non-framework top-level dirs (hooks/skills/commands/agents)
+// and root files (settings.json/CLAUDE.md) were never renamed, so they map 1:1.
 const ALLOW_DIRS = [
   "hooks/",
-  "PAI/PULSE/",
-  "PAI/TOOLS/",
-  "PAI/ALGORITHM/",
-  "PAI/DOCUMENTATION/",
-  "PAI/PAI-Install/",
+  "LIFEOS/PULSE/",
+  "LIFEOS/TOOLS/",
+  "LIFEOS/ALGORITHM/",
+  "LIFEOS/DOCUMENTATION/",
+  "LIFEOS/PAI-Install/",
   "skills/",
   "commands/",
   "agents/",
 ];
-const ALLOW_FILES = new Set(["settings.json", "CLAUDE.md", "PAI/PAI_SYSTEM_PROMPT.md"]);
+const ALLOW_FILES = new Set(["settings.json", "CLAUDE.md", "LIFEOS/LIFEOS_SYSTEM_PROMPT.md"]);
 const KNOWN_BINARY_EXTS = new Set([
   ".mp3",
   ".wav",
@@ -113,8 +120,9 @@ function isDenied(relPath: string): boolean {
   const lower = relPath.toLowerCase();
   const base = path.posix.basename(lower);
   const segments = lower.split("/");
-  if (lower === "pai/user" || lower.startsWith("pai/user/")) return true;
-  if (lower === "pai/memory" || lower.startsWith("pai/memory/")) return true;
+  // SOURCE is LIFEOS/-shaped: the private zones are LIFEOS/USER and LIFEOS/MEMORY.
+  if (lower === "lifeos/user" || lower.startsWith("lifeos/user/")) return true;
+  if (lower === "lifeos/memory" || lower.startsWith("lifeos/memory/")) return true;
   if (base === "settings.local.json" || base === ".checkpoint-state.json") return true;
   if (base === ".env" || base.startsWith(".env") || base.endsWith(".env")) return true;
   if (base.endsWith(".key") || base.endsWith(".pem")) return true;
@@ -127,6 +135,35 @@ function isDenied(relPath: string): boolean {
     [".git", "node_modules", "projects", "test-results", "pai_updates", "pai_backups", ".pai-sync-history", ".cursor"].includes(segment),
   );
 }
+
+// A walk "view" — the allow/deny shape for a given tree. The SOURCE view is
+// LIFEOS-shaped (above); the DEST view is the same allowlist mapped through
+// toDestRel() to PAI-shape, so prune can walk the PAI-shaped release with the
+// same guards. isDenied's non-framework rules (.env/.key/settings.local/…) are
+// shape-independent, so only the LIFEOS/USER|MEMORY private-zone check is remapped.
+type AllowView = {
+  dirs: string[];
+  files: Set<string>;
+  isAllowed: (relPath: string) => boolean;
+  isDenied: (relPath: string) => boolean;
+};
+
+const SOURCE_VIEW: AllowView = { dirs: ALLOW_DIRS, files: ALLOW_FILES, isAllowed, isDenied };
+
+const DEST_VIEW: AllowView = (() => {
+  const dirs = ALLOW_DIRS.map((d) => toDestRel(d.slice(0, -1)) + "/");
+  const files = new Set([...ALLOW_FILES].map(toDestRel));
+  const isAllowedDest = (relPath: string): boolean =>
+    files.has(relPath) || dirs.some((prefix) => relPath.startsWith(prefix));
+  const isDeniedDest = (relPath: string): boolean => {
+    const lower = relPath.toLowerCase();
+    if (lower === "pai/user" || lower.startsWith("pai/user/")) return true;
+    if (lower === "pai/memory" || lower.startsWith("pai/memory/")) return true;
+    // Delegate the shape-independent rules (secrets, .env, .cursor, vcs) to isDenied.
+    return isDenied(relPath);
+  };
+  return { dirs, files, isAllowed: isAllowedDest, isDenied: isDeniedDest };
+})();
 
 // A directory entry that is a symlink/junction/reparse point is NEVER followed or copied
 // (Cato 3): the denylist checks path STRINGS, but readdir/stat FOLLOW links, so an
@@ -148,7 +185,10 @@ function escapesRoot(abs: string, root: string): boolean {
   }
 }
 
-function walkAllowlisted(root: string, only?: string): string[] {
+// Walk a tree under a given AllowView. SOURCE uses SOURCE_VIEW (LIFEOS-shaped);
+// prune walks the DEST under DEST_VIEW (PAI-shaped). Defaults to SOURCE_VIEW so
+// existing call sites are unchanged.
+function walkAllowlisted(root: string, only?: string, view: AllowView = SOURCE_VIEW): string[] {
   const out = new Set<string>();
   const visit = (dirAbs: string, dirRel: string): void => {
     for (const entry of readdirSync(dirAbs, { withFileTypes: true })) {
@@ -160,14 +200,14 @@ function walkAllowlisted(root: string, only?: string): string[] {
       if (entry.isSymbolicLink() || isSymlink(childAbs) || escapesRoot(childAbs, root)) continue;
       if (entry.isDirectory()) visit(childAbs, normalized);
       else if (entry.isFile()) {
-        if (relWithin(normalized, only) && isAllowed(normalized) && !isDenied(normalized)) out.add(normalized);
+        if (relWithin(normalized, only) && view.isAllowed(normalized) && !view.isDenied(normalized)) out.add(normalized);
       } else {
         // No action: non-file, non-directory entries are intentionally ignored.
       }
     }
   };
 
-  for (const prefix of ALLOW_DIRS) {
+  for (const prefix of view.dirs) {
     const relDir = prefix.slice(0, -1);
     if (!scopesIntersect(relDir, only)) continue;
     const absDir = path.join(root, ...relDir.split("/"));
@@ -176,15 +216,20 @@ function walkAllowlisted(root: string, only?: string): string[] {
       // No action: missing, linked, or out-of-tree allowlisted directories are skipped.
     }
   }
-  for (const relFile of ALLOW_FILES) {
+  for (const relFile of view.files) {
     if (!scopesIntersect(relFile, only)) continue;
     const absFile = path.join(root, ...relFile.split("/"));
-    if (existsSync(absFile) && !isSymlink(absFile) && !escapesRoot(absFile, root) && statSync(absFile).isFile() && !isDenied(relFile)) out.add(relFile);
+    if (existsSync(absFile) && !isSymlink(absFile) && !escapesRoot(absFile, root) && statSync(absFile).isFile() && !view.isDenied(relFile)) out.add(relFile);
     else {
       // No action: missing, linked, or out-of-tree allowlisted files are skipped.
     }
   }
   return [...out].sort();
+}
+
+// Dest-shape walk for prune (PAI-shaped release tree).
+function walkAllowlistedDest(root: string, only?: string): string[] {
+  return walkAllowlisted(root, only, DEST_VIEW);
 }
 
 function filterGitIgnored(sourceRoot: string, relPaths: string[]): Set<string> {
@@ -425,6 +470,23 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// SOURCE→DEST relPath remap. The live SOURCE is LIFEOS/-shaped; the public
+// RELEASE is PAI/-shaped. The framework-root dir renamed LIFEOS/ -> PAI/ and the
+// system-prompt file LIFEOS_SYSTEM_PROMPT.md -> PAI_SYSTEM_PROMPT.md. Every other
+// path (hooks/, skills/, settings.json, …) is identical in both shapes. This is
+// the PATH complement to lifeos-normalize's CONTENT-token rewrite; the two are
+// applied together so a ported file lands at the right path AND resolves inside.
+function toDestRel(relPath: string): string {
+  if (relPath === "LIFEOS/LIFEOS_SYSTEM_PROMPT.md") return "PAI/PAI_SYSTEM_PROMPT.md";
+  if (relPath === "LIFEOS" || relPath.startsWith("LIFEOS/")) return "PAI" + relPath.slice("LIFEOS".length);
+  return relPath;
+}
+
+// A file is text (content-normalized) unless it's a known-binary extension.
+function isTextFile(relPath: string): boolean {
+  return !isKnownBinary(relPath);
+}
+
 function displayPath(relPath: string, only?: string): string {
   if (!only) return relPath;
   if (relPath === only) return path.posix.basename(relPath);
@@ -484,8 +546,14 @@ function renderDiff(relPath: string, before: Buffer | null, after: Buffer): stri
 function stageEntries(sourceRoot: string, destRoot: string, relPaths: string[]): Entry[] {
   return relPaths.map((relPath) => {
     const srcAbs = path.join(sourceRoot, ...relPath.split("/"));
-    const destAbs = path.join(destRoot, ...relPath.split("/"));
-    const bytes = readFileSync(srcAbs);
+    // relPath is the SOURCE (LIFEOS-shaped) path; the DEST is PAI-shaped.
+    const destRel = toDestRel(relPath);
+    const destAbs = path.join(destRoot, ...destRel.split("/"));
+    const raw = readFileSync(srcAbs);
+    // Content-normalize text files (LIFEOS->PAI tokens) so a ported file resolves
+    // against the PAI-shaped release; binaries pass through untouched. The scan and
+    // the diff both run on these FINAL bytes, so what ships is what is scanned.
+    const bytes = isTextFile(relPath) ? Buffer.from(normalizeTokens(raw.toString("utf8")).text, "utf8") : raw;
     let action: Action = "add";
     if (existsSync(destAbs)) {
       if (!statSync(destAbs).isFile()) fail(`Destination path is not a file: ${destAbs}`);
@@ -498,8 +566,25 @@ function stageEntries(sourceRoot: string, destRoot: string, relPaths: string[]):
   });
 }
 
+// Prune walks the DEST tree (PAI-shaped) and deletes anything the SOURCE no longer
+// produces. Since SOURCE is LIFEOS-shaped and DEST is PAI-shaped, the source set is
+// remapped through toDestRel() to DEST shape before the comparison — otherwise every
+// LIFEOS-shaped source path would look "absent" from the PAI dest and prune would
+// delete the entire release. The dest walk uses the PAI-shaped allowlist view.
+//
+// SCOPE (Forge audit 2026-07-20, pre-existing behavior — NOT introduced by the remap):
+// prune only removes source-absent ALLOWLISTED files; it does NOT scrub private dest
+// zones (PAI/USER, PAI/MEMORY), because DEST_VIEW.isDenied excludes them from the walk
+// so they never become targets. This is safe by construction — staging never copies
+// USER/MEMORY from the source (isAllowed rejects them), and release tooling overlays
+// the PUBLIC USER scaffold separately — so a private zone can't arrive here via this
+// tool in the first place. Prune is not the private-zone gate; the source allowlist +
+// scanBytes are. If you ever need active scrubbing of stale private dest dirs, add a
+// dedicated fail-closed sweep AFTER the containment checks rather than widening prune.
 function collectPruneTargets(destRoot: string, sourceRelPaths: Set<string>, only?: string): string[] {
-  return walkAllowlisted(destRoot, only).filter((relPath) => !sourceRelPaths.has(relPath));
+  const destSourceSet = new Set([...sourceRelPaths].map(toDestRel));
+  const destOnly = only ? toDestRel(only) : undefined;
+  return walkAllowlistedDest(destRoot, destOnly).filter((relPath) => !destSourceSet.has(relPath));
 }
 
 function runSelfTest(): number {
@@ -509,7 +594,28 @@ function runSelfTest(): number {
   const runtime = Buffer.from(`user=${USERNAME}`, "utf8");
   const seededHit = scanBytes("self-test.txt", seeded).hit;
   const runtimeHit = scanBytes("runtime-user.txt", runtime).hit;
-  if (seededHit && runtimeHit) {
+
+  // Shape-remap regression guard: the LIFEOS-shaped SOURCE must map to the
+  // PAI-shaped DEST, and the DEST_VIEW must accept the remapped paths. A future
+  // rename that desyncs these would otherwise silently emit 0 files (exit 0).
+  const remapCases: Array<[string, string]> = [
+    ["LIFEOS/ALGORITHM/LATEST", "PAI/ALGORITHM/LATEST"],
+    ["LIFEOS/LIFEOS_SYSTEM_PROMPT.md", "PAI/PAI_SYSTEM_PROMPT.md"],
+    ["hooks/SecurityPipeline.hook.ts", "hooks/SecurityPipeline.hook.ts"],
+    ["settings.json", "settings.json"],
+  ];
+  let remapOk = true;
+  for (const [src, wantDest] of remapCases) {
+    const gotDest = toDestRel(src);
+    if (gotDest !== wantDest) { console.error(`REMAP FAIL ${src} -> ${gotDest} (want ${wantDest})`); remapOk = false; }
+    if (!DEST_VIEW.isAllowed(wantDest)) { console.error(`DEST_VIEW rejects ${wantDest}`); remapOk = false; }
+  }
+  // The private zones must be denied in BOTH shapes.
+  const denyOk = SOURCE_VIEW.isDenied("LIFEOS/USER/secrets.md") && DEST_VIEW.isDenied("PAI/USER/secrets.md")
+    && SOURCE_VIEW.isDenied("LIFEOS/MEMORY/x") && DEST_VIEW.isDenied("PAI/MEMORY/x");
+  if (!denyOk) console.error("DENY FAIL: LIFEOS/USER|MEMORY or PAI/USER|MEMORY not denied");
+
+  if (seededHit && runtimeHit && remapOk && denyOk) {
     console.log("PASS");
     return 0;
   }
@@ -526,13 +632,23 @@ function main(argv: string[]): number {
   if (args.selfTest) return runSelfTest();
 
   console.error("WARN: SOURCE is the live/uncommitted working tree and may contain half-edited code.");
-  const sourceRoot = process.env.PAI_DIR ? path.resolve(process.env.PAI_DIR) : path.join(os.homedir(), ".claude");
+  // LIFEOS_DIR is the current override; PAI_DIR kept for back-compat with older invocations.
+  const sourceOverride = process.env.LIFEOS_DIR ?? process.env.PAI_DIR;
+  const sourceRoot = sourceOverride ? path.resolve(sourceOverride) : path.join(os.homedir(), ".claude");
   const repoRoot = resolveRepoRoot();
   const destRoot = resolveDestRoot(repoRoot, args.release);
   assertDestSafe(repoRoot, sourceRoot, destRoot, args.prune);
   const sourceCandidates = walkAllowlisted(sourceRoot, args.only);
   const ignored = filterGitIgnored(sourceRoot, sourceCandidates);
   const relPaths = sourceCandidates.filter((relPath) => !ignored.has(relPath));
+
+  // Silent-false-all-clear guard: a full run (no --only scope) that surfaces ZERO
+  // source files means the allowlist no longer matches the source tree shape — the
+  // exact PAI/->LIFEOS/ rename regression this tool hit. Fail loudly, don't exit 0.
+  if (relPaths.length === 0 && !args.only) {
+    console.error(`REFUSING: 0 source files matched under ${sourceRoot}. The allowlist shape may not match the source tree (expected LIFEOS/-shaped). Set LIFEOS_DIR or check ALLOW_DIRS.`);
+    return 1;
+  }
   const entries = stageEntries(sourceRoot, destRoot, relPaths);
 
   for (const entry of entries) {
