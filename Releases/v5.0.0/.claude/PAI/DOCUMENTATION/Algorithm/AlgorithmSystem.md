@@ -4,8 +4,8 @@
 
 The Algorithm is PAI's universal engine for accomplishing any task. It transitions from **Current State** to **Ideal State** through verifiable iteration, using Ideal State Criteria (ISC) as the quality gate. Every interaction — memory capture, hook execution, learning synthesis — feeds back into improving the Algorithm itself.
 
-**Current version:** v6.4.12
-**Spec location:** `PAI/ALGORITHM/v6.4.12.md` (canonical pointer: `PAI/ALGORITHM/LATEST`)
+**Current version:** v6.4.15
+**Spec location:** `PAI/ALGORITHM/v6.4.15.md` (canonical pointer: `PAI/ALGORITHM/LATEST`)
 **Goal:** Euphoric Surprise — 9-10 user ratings on every response.
 
 **v6.3.0 frame shift:** the thinking-capability vocabulary becomes a **CLOSED ENUMERATION** — selection MUST come verbatim from a fixed list (IterativeDepth, ApertureOscillation, FeedbackMemoryConsult, Advisor, ReReadCheck, FirstPrinciples, SystemsThinking, RootCauseAnalysis, Council, RedTeam, Science, BeCreative, Ideate, BitterPillEngineering, Evals, WorldThreatModel, Fabric patterns, ContextSearch, ISA). Inventing generic labels ("decomposition", "tradeoff analysis", "deep reasoning") is a **PHANTOM thinking capability** and counts as a CRITICAL FAILURE. The new **Capability-Name Audit Gate** fires at the OBSERVE→THINK boundary — every name in `🏹 CAPABILITIES SELECTED` must appear verbatim in the closed list, bolded with `**Name**`. New thinking capabilities are added by editing `capabilities.md` and bumping the Algorithm minor version — never by ad-hoc invention at run time.
@@ -113,7 +113,7 @@ Apply to every criterion before finalizing:
 2. **Tier floor (HARD on the count)** — total ISC count meets the tier floor (E2 >=16, E3 >=32, E4 >=128, E5 >=256). Under-floor either keeps splitting or — at E2/E3 only — documents under-decomposition in `## Decisions` with a load-bearing reason. E4/E5 cannot under-floor.
 3. **Doctrinal minimums** — anti-criteria >=1; antecedent >=1 when the goal is experiential.
 
-> Canonical doctrine lives in `PAI/ALGORITHM/v6.4.12.md` (or follow `PAI/ALGORITHM/LATEST`). This summary is convenience-only — when in doubt, read the spec.
+> Canonical doctrine lives at `PAI/ALGORITHM/LATEST` → `v{VERSION}.md`. This summary is convenience-only — when in doubt, read the spec.
 
 ---
 
@@ -268,7 +268,7 @@ The Verification Doctrine is the bridge between "ran the code" and "trusted the 
 
 | File | Purpose |
 |------|---------|
-| `PAI/ALGORITHM/v6.4.12.md` | Full execution spec — the definitive Algorithm reference |
+| `PAI/ALGORITHM/v6.4.15.md` | Full execution spec — the definitive Algorithm reference |
 | `PAI/ALGORITHM/LATEST` | Symlink to the active version spec |
 | `PAI/ALGORITHM/capabilities.md` | Capability selection tables (thinking, code quality, delegation, research) |
 | `PAI/ALGORITHM/mode-detection.md` | Mode and parameter detection logic |
@@ -332,4 +332,4 @@ The Verification Doctrine is the bridge between "ran the code" and "trusted the 
 
 ---
 
-*Full execution spec: `PAI/ALGORITHM/v6.4.12.md` (or `PAI/ALGORITHM/LATEST`) | ISA format: `PAI/DOCUMENTATION/IsaFormat.md` | ISA skill: `skills/ISA/SKILL.md`*
+*Full execution spec: `PAI/ALGORITHM/LATEST` → `v{VERSION}.md` | ISA format: `PAI/DOCUMENTATION/IsaFormat.md` | ISA skill: `skills/ISA/SKILL.md`*
